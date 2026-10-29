@@ -29,3 +29,6 @@ wandb/
 
 # Paper PDFs: copyrighted, kept local only (papers/README.md lists sources)
 papers/*.pdf
+
+# Generated Kaggle notebooks (may embed a credential)
+/notebooks/

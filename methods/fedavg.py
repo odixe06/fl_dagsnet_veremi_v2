@@ -23,14 +23,25 @@ class Method:
         return {"down": n, "up": n}
 
     def round(self, r, lr):
+        return self._round(lr)
+
+    def _round(self, lr, loss_fn=None, grad_fn=None, after=None):
+        """Broadcast θ^t, one local epoch per client, sample-weighted average. after(idx, flat, bufs) sees each group's
+        trained rows before they are averaged (control variates, statistics, ...)."""
         env = self.env
         acc_p = torch.zeros_like(self.p)
         acc_b = torch.zeros_like(self.b)
         loss = torch.zeros(env.K, device=env.dev)
+        steps = torch.zeros(2, device=env.dev)                       # applied, skipped (non-finite fp16 gradient)
         for idx in env.groups_idx():
             flat = self.p.repeat(len(idx), 1)
             bufs = self.b.repeat(len(idx), 1)
-            st = local.local_epoch(env.lay, flat, bufs, env.train, idx, env.cfg, env.hp, lr, env.gen)
+            self.idx = idx
+            st = local.local_epoch(env.lay, flat, bufs, env.train, idx, env.cfg, env.hp, lr, env.gen,
+                                   loss_fn=loss_fn, grad_fn=grad_fn)
+            if after is not None:
+                after(idx, flat, bufs, st)
+            steps += torch.stack([st["applied"].sum(), st["skipped"].sum()])
             w = env.n[idx][:, None]
             acc_p += (w * flat).sum(0)
             acc_b += (w * bufs).sum(0)
@@ -38,7 +49,9 @@ class Method:
         tot = env.allreduce(env.n.sum().clone())
         self.p = env.allreduce(acc_p) / tot
         self.b = env.allreduce(acc_b) / tot
-        return {"train_loss": float((env.allreduce((loss * env.n).sum()) / tot).item())}
+        steps = env.allreduce(steps)
+        return {"train_loss": float((env.allreduce((loss * env.n).sum()) / tot).item()),
+                "skipped_frac": float(steps[1] / steps.sum().clamp_min(1))}
 
     def evaluate(self):
         return {"global": self.env.eval_global(self.p, self.b)}

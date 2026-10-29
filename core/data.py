@@ -53,21 +53,31 @@ def files(root, split):
     return fs
 
 
-def load(root, split, clients=None, cache=None):
-    """split in {'train', 'test'}; clients = iterable of global client_id to keep (None = all)."""
+def load(root, split, clients=None, cache=None, folds=None):
+    """split in {'train', 'test'}; clients = iterable of global client_id to keep (None = all); folds = subset of
+    {'train', 'val'} inside train/ (None = every row: FL and final runs train on train + val)."""
     tag = "all" if clients is None else f"sub{len(set(clients))}_{abs(hash(tuple(sorted(set(clients))))) % 10**8}"
+    if folds:
+        tag += "_" + "+".join(sorted(folds))
     if cache:
         base = os.path.join(cache, f"{split}_{tag}")
         if os.path.exists(base + ".done"):
             return Split(np.load(base + "_X.npy", mmap_mode="r"), np.load(base + "_Y.npy"),
                          np.load(base + "_off.npy"), np.load(base + "_ids.npy"))
     fs = files(root, split)
-    keep = np.ones(N_CLIENTS, bool) if clients is None else np.isin(np.arange(N_CLIENTS), list(clients))
-    cid = [pq.read_table(f, columns=["client_id"]).column("client_id").to_numpy() for f in fs]
+    keep = np.ones(N_CLIENTS + 1, bool) if clients is None else np.isin(np.arange(N_CLIENTS + 1), list(clients))
+    keep[-1] = False                                                   # index -1: row outside the requested folds
+    cid = []
+    for f in fs:
+        t = pq.read_table(f, columns=["client_id"] + (["fold"] if folds else []))
+        c = t.column("client_id").to_numpy().copy()
+        if folds:
+            c[~np.isin(t.column("fold").to_numpy(zero_copy_only=False), list(folds))] = -1
+        cid.append(c)
     counts = np.zeros(N_CLIENTS, np.int64)
     for c in cid:
-        counts += np.bincount(c, minlength=N_CLIENTS)
-    counts[~keep] = 0
+        counts += np.bincount(c[c >= 0], minlength=N_CLIENTS)
+    counts[~keep[:-1]] = 0
     ids = np.nonzero(counts)[0]
     off_all = np.concatenate([[0], np.cumsum(counts)])
     N = int(off_all[-1])

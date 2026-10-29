@@ -16,6 +16,15 @@
   `large_string`, partition hive suy `string`) ⇒ đọc từng file bằng `pq.read_table` (`core/data.py`).
 - 77 đầu vào = 11 × 7 ⇒ DAGSNet giữ lưới 11 vị trí (`view(B, 11, 7).transpose(1, 2)`).
 
+## Compile
+
+- **`torch.compile` + AMP fp16 làm gradient NaN ở nhánh AlexNet grouped** (29/10): forward khớp eager (Δlogit 2e-3) nhưng
+  backward của `amax` (maxpool 2, ceil) cho NaN ở mọi bước ⇒ optimizer bỏ mọi bước, model đứng ở init, FedAvg smoke acc 0,047 /
+  loss "0,028" (chỉ là tổng các bước được áp = 0). fp32 compile và eager không bị. Sửa: `torch.maximum(x[..., 0::2], x[..., 1::2])`.
+  Chặn tái diễn: `local.compile_gate` (một bước thật, so gradient compile vs eager, FAIL ⇒ eager) + cảnh báo `skipped_frac` mỗi round.
+  Test tương đương fp64 eager không bắt được lỗi chỉ có ở đường compile + fp16.
+- Shape tĩnh cho train (nhóm đệm tới đủ G client rỗng), shape động cho eval; mỗi shape mới = một lần compile ~2 phút.
+
 ## Tốc độ (đo 29/10, RTX 3050 4 GiB local)
 
 - DAGSNet đơn, AMP, batch 8.192: full 46k mẫu/s eager, 59k compile; W 0,375: 78k / 113k.

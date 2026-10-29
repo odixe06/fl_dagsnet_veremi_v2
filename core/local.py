@@ -81,13 +81,17 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
     scale = hp.get("loss_scale", 2.0 ** 12)
     loss_sum = torch.zeros(ctx.Gfix, device=flat.device)
     skipped = torch.zeros(ctx.Gfix, device=flat.device)
+    applied = torch.zeros(ctx.Gfix, device=flat.device)
     ctx.clients = clients_p
+    # One autograd leaf per parameter tensor, sharing storage with flat_p (the optimizer updates flat_p in place, the
+    # leaves see it). Leaves that are views of one (G, P) tensor would make every SliceBackward allocate and add a full
+    # (G, P) zero tensor: 85 % of step time at G = 32 (profiled 29/10).
+    leaves = {k: v.detach().requires_grad_(True) for k, v in lay.params(flat_p).items()}
     for s in range(steps):
         sl = slice(s * b, (s + 1) * b)
         rows, mask = pos[:, sl], valid[:, sl]
         active = mask.any(1)
-        w = flat_p.detach().requires_grad_(True)
-        ctx.P, ctx.B, ctx.flat = lay.params(w), lay.bufs(bufs_p), w
+        ctx.P, ctx.B, ctx.flat = leaves, lay.bufs(bufs_p), flat_p
         ctx.x, ctx.y, ctx.mask, ctx.rows, ctx.step = X[rows], Y[rows].long(), mask, rows, s
         with torch.autocast("cuda", dtype=torch.float16, enabled=hp.get("amp", True) and X.is_cuda):
             if loss_fn is None:
@@ -97,7 +101,9 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
                 loss, newB = loss_fn(ctx)
         loss = torch.where(active, loss, torch.zeros_like(loss))
         (loss.sum() * scale).backward()
-        grad = w.grad / scale
+        grad = torch.cat([leaves[k].grad.reshape(ctx.Gfix, -1) for k, _ in lay.p], dim=1) / scale
+        for v in leaves.values():
+            v.grad = None
         if grad_fn is not None:
             grad_fn(ctx, grad)
         _, ok = opt.step(flat_p, grad, lr, active)
@@ -105,5 +111,37 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
         bufs_p.copy_(torch.where(ok[:, None], nb, bufs_p))
         loss_sum += loss.detach() * ok
         skipped += (active & ~ok).float()
+        applied += ok.float()
     flat.copy_(flat_p[:G]); bufs.copy_(bufs_p[:G])
-    return {"loss": loss_sum[:G] / torch.ceil(n.float() / b), "skipped": skipped[:G], "steps": steps}
+    return {"loss": loss_sum[:G] / torch.ceil(n.float() / b), "skipped": skipped[:G], "applied": applied[:G],
+            "steps": steps}
+
+
+def compile_gate(lay, data, cfg, hp, gen):
+    """One real grouped step (training shape) eager vs compiled, dropout off: logits, BN stats and gradients must agree
+    and be finite. Returns (ok, report). Callers fall back to eager when ok is False."""
+    from core import grouped as gr
+    cfg0 = dict(cfg, dropout=0.0)
+    b = slot(hp["batch"], hp["batch"])
+    G = max(1, hp["group_rows"] // b)
+    n = data.off[1:] - data.off[:-1]
+    k = torch.argsort(n, descending=True)[:G]
+    start, cnt = data.off[k], n[k]
+    if len(k) < G:
+        start, cnt = torch.cat([start, start[:1].expand(G - len(k))]), torch.cat([cnt, cnt.new_zeros(G - len(k))])
+    pos, valid = permutations(start, cnt, 1, b, gen)
+    flat, bufs = lay.init(hp["seed"], G, data.X.device)
+    out = []
+    for f in (gr.forward, gr.TRAIN):
+        w = flat.detach().clone().requires_grad_(True)
+        with torch.autocast("cuda", dtype=torch.float16, enabled=data.X.is_cuda):
+            logits, newB = f(lay.params(w), lay.bufs(bufs), data.X[pos], cfg0, mask=valid, train=True)
+            loss = ce_loss(logits, data.Y[pos].long(), valid)
+        (loss.sum() * 1024).backward()
+        out.append((logits.detach(), lay.flat_bufs(newB), w.grad / 1024))
+    (le, be, ge), (lc, bc, gc) = out
+    rep = {"logit_maxdiff": float((le - lc).abs().max()), "grad_finite": bool(torch.isfinite(gc).all()),
+           "grad_rel": float(((ge - gc).norm(dim=1) / ge.norm(dim=1).clamp_min(1e-12)).max()),
+           "bn_maxdiff": float((be - bc).abs().max())}
+    ok = rep["grad_finite"] and rep["grad_rel"] < 0.1 and rep["logit_maxdiff"] < 0.05 * float(le.abs().max())
+    return ok, rep

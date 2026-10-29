@@ -77,8 +77,10 @@ def _cbr(c, name, x, k):
     return torch.relu(_bn(c, name + ".1", _conv(c, name + ".0", x, k)))
 
 
+# Max-pool padding: every pooled tensor is a ReLU output (>= 0), so padding with 0 equals PyTorch's -inf padding exactly,
+# and avoids the -inf the compiled backward turned into non-finite gradients (29/10, LESSONS).
 def _pool3(x):                                                        # MaxPool1d(3, 1, 1) on L
-    xp = F.pad(x, (0, 0, 1, 1), value=float("-inf"))
+    xp = F.pad(x, (0, 0, 1, 1))
     L = x.shape[2]
     return torch.maximum(torch.maximum(xp[:, :, :L], xp[:, :, 1:L + 1]), xp[:, :, 2:L + 2])
 
@@ -86,8 +88,8 @@ def _pool3(x):                                                        # MaxPool1
 def _pool2(x):                                                        # MaxPool1d(2, ceil_mode=True) on L
     G, b, L, C = x.shape
     if L % 2:
-        x = F.pad(x, (0, 0, 0, 1), value=float("-inf"))
-    return x.view(G, b, (L + 1) // 2, 2, C).amax(3)
+        x = F.pad(x, (0, 0, 0, 1))
+    return torch.maximum(x[:, :, 0::2], x[:, :, 1::2])               # not .amax: its fp16 compiled backward gave NaN
 
 
 def _combined(c, cfg, x):
@@ -151,5 +153,7 @@ EVAL = forward
 
 def compile_all():
     global TRAIN, EVAL
+    from core import optim
     TRAIN = torch.compile(forward, dynamic=False)
     EVAL = torch.compile(forward, dynamic=True)
+    optim.compile_all()
