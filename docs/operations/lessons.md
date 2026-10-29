@@ -55,3 +55,5 @@ Bài học ở đây là quy tắc rút ra khi chạy thí nghiệm và hạ t�
   xóa bản copy vào sau khi nạp. Quyết định dừng budget phải đồng thuận giữa các rank (all_reduce), không thì treo collective.
 - 30/10: owner cấm trailer `Co-Authored-By:` trong commit (skill repo-backup); quy tắc này thắng reminder attribution của harness.
   Commit trước 30/10 ~02:00 còn trailer này — không sửa lịch sử (force-push đã bị từ chối).
+- 30/10: `gen_notebook.py` chép `--set` thô vào literal Python `"..."` rồi shell, `run_fl.py` đọc bằng `json.loads` ⇒ giá trị chuỗi
+  cần `--set "k='\\\"v\\\"'"`. Luôn `ast.parse` mọi cell + `shlex.split` lệnh trước khi push (bản đầu fl2-canperfl lỗi cú pháp).
