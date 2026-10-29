@@ -55,7 +55,7 @@ class Env:
         import pyarrow.parquet as pq
         n = np.zeros(D.N_CLIENTS, np.int64)
         for f in D.files(root, "train"):
-            n += np.bincount(pq.read_table(f, columns=["client_id"]).column("client_id").to_numpy(), minlength=D.N_CLIENTS)
+            n += np.bincount(pq.ParquetFile(f).read(columns=["client_id"]).column("client_id").to_numpy(), minlength=D.N_CLIENTS)
         if cache:
             os.makedirs(cache, exist_ok=True); np.save(p, n)
         return n

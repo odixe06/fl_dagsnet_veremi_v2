@@ -1,6 +1,7 @@
 """v4 parquet -> resident arrays sorted by client: X (N, 77) fp16, Y (N,) int8, off (K+1,), ids (K,) global client_id.
 
-Two passes over the 410 files of a split (pass 1: client_id only -> offsets; pass 2: scatter each file's rows into a
+Files are read with pq.ParquetFile (never read_table/dataset: those infer the hive partition from the path and clash
+with the large_string columns, on Kaggle's pyarrow even for a single file). Two passes over the 410 files of a split (pass 1: client_id only -> offsets; pass 2: scatter each file's rows into a
 preallocated array) so peak RAM is one copy of X. Within a client, rows keep file order (not time order): training
 shuffles and evaluation sums confusion matrices, so neither depends on it. Train split = fold train + val (owner 29/10).
 """
@@ -69,7 +70,7 @@ def load(root, split, clients=None, cache=None, folds=None):
     keep[-1] = False                                                   # index -1: row outside the requested folds
     cid = []
     for f in fs:
-        t = pq.read_table(f, columns=["client_id"] + (["fold"] if folds else []))
+        t = pq.ParquetFile(f).read(columns=["client_id"] + (["fold"] if folds else []))
         c = t.column("client_id").to_numpy().copy()
         if folds:
             c[~np.isin(t.column("fold").to_numpy(zero_copy_only=False), list(folds))] = -1
@@ -88,7 +89,7 @@ def load(root, split, clients=None, cache=None, folds=None):
         sel = keep[c]
         if not sel.any():
             continue
-        t = pq.read_table(f, columns=ORDER + ["label"])
+        t = pq.ParquetFile(f).read(columns=ORDER + ["label"])
         x = np.stack([t.column(k).to_numpy().astype(np.float16) for k in ORDER], axis=1)[sel]
         y = t.column("label").to_numpy()[sel]
         c = c[sel]
