@@ -50,3 +50,6 @@ Bài học ở đây là quy tắc rút ra khi chạy thí nghiệm và hạ t�
 
 - SHA của `.git/index` khác chưa có nghĩa nội dung staged đổi. Kiểm staged tree và HEAD riêng; ghi cả byte identity và content identity,
   không khôi phục index chỉ để ép SHA trùng snapshot cũ (20/10).
+- 30/10: resume state của phương pháp per-client phải ghi **theo rank** (mỗi rank giữ bank client riêng); bản cũ chỉ rank 0 ghi ⇒
+  resume sai lặng lẽ. Bank W = 1 ≈ 4,2 GB/rank, ghi atomic giữ 2 bản ⇒ vượt ~20 GB `/kaggle/working`: chỉ ghi khi dừng budget,
+  xóa bản copy vào sau khi nạp. Quyết định dừng budget phải đồng thuận giữa các rank (all_reduce), không thì treo collective.
