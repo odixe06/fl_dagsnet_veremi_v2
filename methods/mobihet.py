@@ -117,21 +117,20 @@ class Method:
         mp = torch.cat([ctx.mask, act[:, None].expand(G, a)], 1)
         zp, nBp = grouped.TRAIN(Pp, Bp, xp, cfg, mask=mp, train=True)
         zr, nBr = grouped.TRAIN(Pr, Br, ctx.x, cfg, mask=ctx.mask, train=True)
-        y, m = ctx.y, ctx.mask.float()
-        nreal = m.sum(1).clamp_min(1)
+        y = ctx.y
         shift = self._shift[:, None, :]
-        ce = (F.cross_entropy((zp[:, :b] + shift).reshape(-1, 16), y.reshape(-1), reduction="none").view(G, b) * m).sum(1) / nreal
-        pce = (F.cross_entropy(zr.reshape(-1, 16), y.reshape(-1), reduction="none").view(G, b) * m).sum(1) / nreal
+        ce = local.masked_mean(F.cross_entropy((zp[:, :b] + shift).reshape(-1, 16), y.reshape(-1), reduction="none").view(G, b), ctx.mask)
+        pce = local.masked_mean(F.cross_entropy(zr.reshape(-1, 16), y.reshape(-1), reduction="none").view(G, b), ctx.mask)
         raw = 1 / (ce + pce).detach().clamp_min(1e-6)
         lsp, lsr = F.log_softmax(zp, -1), F.log_softmax(zr, -1)
-        kl_proxy = ((lsp[:, :b].detach().exp() * (lsp[:, :b].detach() - lsr)).sum(-1) * m).sum(1) / nreal
+        kl_proxy = local.masked_mean((lsp[:, :b].detach().exp() * (lsp[:, :b].detach() - lsr)).sum(-1), ctx.mask)
         loss = ce + pce + raw.clamp(max=KD_CAP) * kl_proxy
         if self.version > 0:
             with torch.no_grad():
                 zt, _ = grouped.TRAIN(self._teacher_p, self._teacher_b, xp, cfg, train=False)
                 lt = F.log_softmax(zt.float(), -1)
             kl = (lt.exp() * (lt - lsp)).sum(-1)                         # KL(T ‖ private) per row
-            kd = (kl[:, :b] * m).sum(1) / nreal
+            kd = local.masked_mean(kl[:, :b], ctx.mask)
             gkd = kl[:, b:].mean(1)
             loss = loss + raw * (kd + gkd)
         else:

@@ -27,6 +27,10 @@ riêng lấy từ bài gốc). Mọi thứ dưới đây dùng chung, code chung
 | Seed | 42 (một seed) |
 | Init | mọi model khởi tạo từ cùng θ⁰ (seed 42) |
 
+**Gộp model:** mọi trung bình tham số/BN buffer giữa client theo số mẫu n_k (owner 29/10), kể cả bài gốc gộp không trọng số
+(SCAFFOLD, NILM-FL, PerFed-SKD, LwFedNIDS, MobiHet) — với 5.343 xe 76–95k dòng, trung bình 1/K kéo model về gần θ⁰ (smoke 100 xe, 2 round:
+SCAFFOLD 1/K 0,17 so FedAvg n_k 0,69). Gộp prototype giữ đúng cơ chế của bài (TinyProto APS, FedTGP Q^c, FedProto Eq. 6).
+
 Siêu tham số riêng của phương pháp (μ FedProx, nhiệt độ KD, λ prototype, …): **giá trị trong bài gốc**; bài không nêu ⇒ giá trị mặc định
 của code chính thức; không có ⇒ chọn, ghi vào `docs/methods/<method>.md` là deviation. Không quét siêu tham số trên test.
 

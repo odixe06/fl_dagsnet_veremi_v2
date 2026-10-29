@@ -46,11 +46,11 @@ class Method:
                 ce = local.ce_loss(z, ctx.y, ctx.mask)
                 m = ctx.mask & self.has[ctx.y]
                 diff = ((h - self.proto[ctx.y]) ** 2).mean(-1)              # MSE per row over the d dims
-                reg = (diff * m).sum(1) / ctx.mask.sum(1).clamp_min(1)       # nn.MSELoss over the batch (absent class: 0)
+                reg = torch.where(m, diff, 0.0).sum(1) / ctx.mask.sum(1).clamp_min(1)   # nn.MSELoss over the batch (absent class: 0)
                 with torch.no_grad():
                     w = ctx.mask.float()
                     acc.index_put_((torch.arange(Gf, device=h.device)[:, None].expand_as(ctx.y), ctx.y),
-                                   h.detach() * w[..., None], accumulate=True)
+                                   torch.where(ctx.mask[..., None], h.detach(), 0.0), accumulate=True)
                     cnt.index_put_((torch.arange(Gf, device=h.device)[:, None].expand_as(ctx.y), ctx.y), w, accumulate=True)
                 return ce + self.lam * reg, nb
 

@@ -57,7 +57,7 @@ class Method:
                 if self.target is None:
                     return ce, nb
                 diff = ((h - self.target[ctx.y]) ** 2).mean(-1)
-                return ce + self.lam * (diff * ctx.mask).sum(1) / ctx.mask.sum(1).clamp_min(1), nb
+                return ce + self.lam * torch.where(ctx.mask, diff, 0.0).sum(1) / ctx.mask.sum(1).clamp_min(1), nb
 
             flat, bufs = self.bank_p[idx], self.bank_b[idx]
             st = local.local_epoch(env.lay, flat, bufs, env.train, idx, cfg, env.hp, lr, env.gen, loss_fn=loss_fn)

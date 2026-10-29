@@ -30,9 +30,9 @@ class Method(fedavg.Method):
         z, nb = grouped.TRAIN(ctx.P, ctx.B, ctx.x, cfg, mask=ctx.mask, train=True)
         with torch.no_grad():
             zt, _ = grouped.TRAIN(Pt, Bt, ctx.x, cfg, train=False)
-        T, m = self.T, ctx.mask.float()
+        T = self.T
         lt, ls = F.log_softmax(zt.float() / T, -1), F.log_softmax(z / T, -1)
-        soft = ((lt.exp() * (lt - ls)).sum(-1) * m).sum(1) / m.sum(1).clamp_min(1) * T * T
+        soft = local.masked_mean((lt.exp() * (lt - ls)).sum(-1), ctx.mask) * T * T
         return self.lam * local.ce_loss(z, ctx.y, ctx.mask) + (1 - self.lam) * soft, nb
 
     def _grad(self, ctx, grad):

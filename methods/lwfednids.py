@@ -7,7 +7,7 @@ consumer input columns; Torch-Pruning/DepGraph GroupNormImportance with p = 1, w
 each group removed (70 % = the paper's best sparsity) and the pruned parameters physically dropped (DepGraph), so the
 model trained and exchanged is a narrower DAGSNet whose initial weights are the kept slices of θ⁰.
 Deviations: DAGSNet instead of the paper's CNN feature extractor + classifier; uniform 70 % per group (paper: a global
-rate); FedAvg sample-weighted as everywhere else here (paper's footnote: plain averaging).
+rate); FedAvg sample-weighted, the protocol rule (owner 29/10; paper's footnote: plain averaging).
 """
 import torch
 

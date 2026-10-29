@@ -2,7 +2,8 @@
 
 Each device trains a personalised model w_s and a unified proxy w_r on its data with mutual distillation:
     L_s = ℓ(y, y_s) + ℓ_d,   L_r = ℓ(y, y_r) + ℓ_d,   ℓ_d = ℓ(y_s, y_r) / (ℓ_s + ℓ_r)        (Eq. 18-19, adaptive weight)
-Only w_r is uploaded; server w̄_r = (1/K) Σ_k w_r^k (Alg. 1, unweighted); evaluation uses the personalised model.
+Only w_r is uploaded; server w̄_r = Σ_k (n_k/n) w_r^k — deviation (owner 29/10, protocol rule): Alg. 1 averages uniformly
+(1/K); evaluation uses the personalised model.
 For 16-class IDS ℓ = cross-entropy and ℓ(y_s, y_r) = KL between the two softmaxes, each model distilling from the other's
 detached prediction (deep mutual learning; NILM's regression used MSE). The adaptive denominator is detached.
 Deviations: the personalised architecture is DAGSNet (the paper searches it with hardware-aware NAS, §III-B; the
@@ -33,12 +34,10 @@ class Method:
         (Ps, Pr), (Bs, Br) = ctx.P, ctx.B
         zs, nbs = grouped.TRAIN(Ps, Bs, ctx.x, cfg, mask=ctx.mask, train=True)
         zr, nbr = grouped.TRAIN(Pr, Br, ctx.x, cfg, mask=ctx.mask, train=True)
-        m = ctx.mask.float()
-        n = m.sum(1).clamp_min(1)
         ls_, lr_ = local.ce_loss(zs, ctx.y, ctx.mask), local.ce_loss(zr, ctx.y, ctx.mask)
         ps, pr = F.log_softmax(zs, -1), F.log_softmax(zr, -1)
-        kl_s = ((pr.detach().exp() * (pr.detach() - ps)).sum(-1) * m).sum(1) / n      # personalised <- proxy
-        kl_r = ((ps.detach().exp() * (ps.detach() - pr)).sum(-1) * m).sum(1) / n      # proxy <- personalised
+        kl_s = local.masked_mean((pr.detach().exp() * (pr.detach() - ps)).sum(-1), ctx.mask)      # personalised <- proxy
+        kl_r = local.masked_mean((ps.detach().exp() * (ps.detach() - pr)).sum(-1), ctx.mask)      # proxy <- personalised
         w = 1 / (ls_ + lr_).detach().clamp_min(1e-6)
         return ls_ + lr_ + w * (kl_s + kl_r), [nbs, nbr]
 
@@ -54,10 +53,11 @@ class Method:
             bufs = torch.cat([self.priv_b[idx], self.g_b.repeat(G, 1)], 1)
             st = local.local_epoch(lay, flat, bufs, env.train, idx, env.cfg, env.hp, lr, env.gen, loss_fn=self._loss, models=2)
             self.priv_p[idx], self.priv_b[idx] = flat[:, :P], bufs[:, :Bn]
-            acc_p += flat[:, P:].double().sum(0)
-            acc_b += bufs[:, Bn:].double().sum(0)
+            w = env.n[idx][:, None].double()
+            acc_p += (w * flat[:, P:].double()).sum(0)
+            acc_b += (w * bufs[:, Bn:].double()).sum(0)
             loss[idx] = st["loss"]
-        K = env.allreduce(torch.tensor(float(env.K), device=env.dev))
+        K = env.allreduce(env.n.sum().double())
         self.g_p = (env.allreduce(acc_p) / K).float()
         self.g_b = (env.allreduce(acc_b) / K).float()
         return {"train_loss": float(env.allreduce((loss * env.n).sum()) / env.allreduce(env.n.sum().clone()))}

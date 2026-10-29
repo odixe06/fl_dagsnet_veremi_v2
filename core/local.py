@@ -44,11 +44,16 @@ def permutations(start, n, steps, batch, gen):
     return pos, valid
 
 
+def masked_mean(v, mask):
+    """(G, b) per-row values -> (G,) mean over real rows. where, not v * mask: padding clients (no real row) have
+    zero-variance BN and may overflow fp16, and inf * 0 = NaN."""
+    return torch.where(mask, v, 0.0).sum(1) / mask.sum(1).clamp_min(1)
+
+
 def ce_loss(logits, y, mask):
     """Per-client mean CE over real rows -> (G,)."""
     G, b, C = logits.shape
-    l = F.cross_entropy(logits.reshape(-1, C), y.reshape(-1), reduction="none").view(G, b)
-    return (l * mask).sum(1) / mask.sum(1).clamp_min(1)
+    return masked_mean(F.cross_entropy(logits.reshape(-1, C), y.reshape(-1), reduction="none").view(G, b), mask)
 
 
 class Ctx:

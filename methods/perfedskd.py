@@ -5,7 +5,7 @@ Round t: the server selects S = {m : a_m < A}, A = mean_m a_m (Alg. 1 lines 4-6;
 restart from the global ω^t, the others continue from ω_m (Alg. 2 lines 4-7). Every device trains E epochs on
     φ_m = CE(ω_m) + λ·KL(x(V_m) ‖ x(ω_m))          (Eq. 2; no teacher in round 1)
 then saves V_m ← ω_m and reports its accuracy a_m; the server averages the selected devices' models,
-ω^{t+1} = Σ_{m∈S} ω_m / |S| (Alg. 1 line 11). Evaluation: the personalised models.
+ω^{t+1} = Σ_{m∈S} (n_m / n_S) ω_m (Alg. 1 line 11 averages uniformly over S; sample weights = protocol rule, owner 29/10). Evaluation: the personalised models.
 Choices the paper leaves open: λ = 1 and L = KL at temperature 1 (λ and L are not given numerically); a_m = accuracy of
 ω_m on the device's own training rows (eval mode) — the paper's "local model accuracy", test rows are never used;
 no server pre-training on a "predefined dataset" (none exists here; θ⁰ is the shared random init).
@@ -58,19 +58,20 @@ class Method:
                 with torch.no_grad():
                     zt, _ = grouped.TRAIN(teacher[0], teacher[1], ctx.x, cfg, train=False)
                     lt = F.log_softmax(zt.float(), -1)
-                m = ctx.mask.float()
-                kl = ((lt.exp() * (lt - F.log_softmax(z, -1))).sum(-1) * m).sum(1) / m.sum(1).clamp_min(1)
+                kl = local.masked_mean((lt.exp() * (lt - F.log_softmax(z, -1))).sum(-1), ctx.mask)
                 return ce + self.lam * kl, nb
 
             st = local.local_epoch(lay, flat, bufs, env.train, idx, cfg, env.hp, lr, env.gen, loss_fn=loss_fn)
             self.bank_p[idx], self.bank_b[idx] = flat, bufs                  # ω_m, and V_m for the next round
-            acc_p += (s.double() * flat.double()).sum(0)
-            acc_b += (s.double() * bufs.double()).sum(0)
+            w = s.double() * env.n[idx][:, None].double()
+            acc_p += (w * flat.double()).sum(0)
+            acc_b += (w * bufs.double()).sum(0)
             loss[idx] = st["loss"]
         nsel = env.allreduce(sel.sum().double())
+        wsel = env.allreduce((sel.double() * env.n.double()).sum())
         if nsel > 0:
-            self.g_p = (env.allreduce(acc_p) / nsel).float()
-            self.g_b = (env.allreduce(acc_b) / nsel).float()
+            self.g_p = (env.allreduce(acc_p) / wsel).float()
+            self.g_b = (env.allreduce(acc_b) / wsel).float()
         cms = evaluate.own_cm(lay, self.bank_p, self.bank_b, env.train, cfg, torch.arange(env.K, device=env.dev),
                               max_rows=env.hp.get("eval_rows", 1 << 15))
         self.acc = torch.as_tensor(np.trace(cms, axis1=1, axis2=2) / cms.sum((1, 2)).clip(min=1), device=env.dev,
