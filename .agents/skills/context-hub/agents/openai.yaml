@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Hub"
+  short_description: "Organize project context and documentation"
+  default_prompt: "Use $context-hub to organize the project documentation and update CONTEXT.md with current status and next actions."

@@ -1,0 +1,27 @@
+{
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "image": {
+    "python": "3.12.13",
+    "torch": "2.10.0+cu128",
+    "cuda": "12.8",
+    "note": "properties of the pinned digest, printed by the hardware cell of notebooks run on it"
+  },
+  "verified_on": {
+    "kernel": "trietbackup/mobihet-dagsnet-veremi-20-clients-sweep-stage1",
+    "version": 1,
+    "date": "2026-09-29",
+    "python": "3.12.13",
+    "gpus": [
+      "Tesla T4 sm_75 14.6GB",
+      "Tesla T4 sm_75 14.6GB"
+    ],
+    "cpu_count_logical": 4,
+    "host_ram_gb": 31.3,
+    "backend_train": "compiled",
+    "backend_eval": "compiled",
+    "source": "kernel log (hardware cell: 2 x Tesla T4 (7, 5), torch 2.10.0+cu128, python 3.12.13) and W&B run metadata of mobihet-veremi/sweep_stage1_20c_base"
+  },
+  "provenance": "Pinned digest delivers 2 x T4 with torch.compile(reduce-overhead) certified on sm_75 for train and eval (MobiHet build-2 sweep, 2026-09-29)."
+}

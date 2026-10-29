@@ -1,0 +1,38 @@
+{
+ "label_to_id": {
+  "benign": 0,
+  "accelerationMultiplication": 1,
+  "constantPositionOffset": 2,
+  "constantSpeedOffset": 3,
+  "dataReplay": 4,
+  "dosAttack": 5,
+  "feignedBraking": 6,
+  "positionMirroring": 7,
+  "randomPositionOffset": 8,
+  "randomSpeedOffset": 9,
+  "reversedHeading": 10,
+  "suddenConstantSpeed": 11,
+  "suddenStop": 12,
+  "timeDelayAttack": 13,
+  "trafficCongestionSybil": 14,
+  "zeroSpeedReport": 15
+ },
+ "id_to_label": {
+  "0": "benign",
+  "1": "accelerationMultiplication",
+  "2": "constantPositionOffset",
+  "3": "constantSpeedOffset",
+  "4": "dataReplay",
+  "5": "dosAttack",
+  "6": "feignedBraking",
+  "7": "positionMirroring",
+  "8": "randomPositionOffset",
+  "9": "randomSpeedOffset",
+  "10": "reversedHeading",
+  "11": "suddenConstantSpeed",
+  "12": "suddenStop",
+  "13": "timeDelayAttack",
+  "14": "trafficCongestionSybil",
+  "15": "zeroSpeedReport"
+ }
+}

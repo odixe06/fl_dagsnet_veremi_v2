@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Backup"
+  short_description: "Back up Git and DVC artifacts, restore, reclaim disk"
+  default_prompt: "Use $repo-backup to push new artifacts to Git and DVC with explicit targets, verify both, and update the repository backup record. Delete local data only if I ask."

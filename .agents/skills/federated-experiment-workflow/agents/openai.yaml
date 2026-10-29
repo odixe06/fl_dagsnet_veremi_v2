@@ -1,0 +1,4 @@
+interface:
+  display_name: "Federated experiment workflow"
+  short_description: "Audit FL builds, resume runs and organize evidence"
+  default_prompt: "Use $federated-experiment-workflow to resume the research handoff, verify completed outputs and update build documentation."

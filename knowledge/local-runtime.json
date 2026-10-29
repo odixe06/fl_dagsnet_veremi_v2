@@ -1,0 +1,52 @@
+{
+  "measured_on": "2026-10-26",
+  "python": "3.12.15",
+  "packages": {
+    "torch": "2.13.0+cu130",
+    "numpy": "2.5.2",
+    "pyarrow": "25.0.0",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.17.1",
+    "wandb": "0.29.0",
+    "kaggle": "2.2.5",
+    "kagglesdk": "0.1.38",
+    "dvc": "3.67.1",
+    "psutil": "7.2.2"
+  },
+  "cuda_available": true,
+  "cuda_runtime": "13.0",
+  "cudnn_version": 92000,
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "capability": [
+    8,
+    6
+  ],
+  "vram_bytes": 3953393664,
+  "host": {
+    "os": "Lubuntu 26.04.1 LTS (Ubuntu base)",
+    "kernel": "7.0.0-38-generic",
+    "architecture": "x86_64",
+    "ram_kib": 16087364,
+    "swap_kib": 8388604,
+    "python_executable": "/home/odixe/Tools/miniconda3/envs/nckh/bin/python",
+    "conda_root": "/home/odixe/Tools/miniconda3",
+    "checkout": "/home/odixe/project/mobihet",
+    "dataset_root": "/run/media/odixe/ORICO/nextgen",
+    "desktop": "LXQt",
+    "desktop_session": "Lubuntu",
+    "lubuntu_default_settings": "26.04.2",
+    "lxqt_session": "2.3.0-0ubuntu1",
+    "dataset_filesystem": "exfat"
+  },
+  "package_updates": {
+    "2026-10-27": {
+      "kaggle": {
+        "from": "2.2.4",
+        "to": "2.2.5"
+      },
+      "other_packages_changed": false,
+      "pip_check_exit": 0
+    }
+  }
+}

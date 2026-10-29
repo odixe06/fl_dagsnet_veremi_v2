@@ -1,0 +1,7 @@
+interface:
+  display_name: "Federated Training Speed"
+  short_description: "Faster FL training code on 2x T4, method unchanged"
+  default_prompt: "Use $federated-training-speed to measure this federated training harness, choose bit-exact or tolerance-class speedups, benchmark them on the target GPUs and prove the faster code trains the same thing."
+
+policy:
+  allow_implicit_invocation: true

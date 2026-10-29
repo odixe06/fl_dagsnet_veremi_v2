@@ -1,0 +1,31 @@
+# Secrets
+.env
+.env.*
+**/private_push/
+.mcp.json
+**/.vscode/mcp.json
+kaggle.json
+credentials.json
+.netrc
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data, runs, weights (local + Kaggle, never Git)
+/cache/
+/data/
+/runs/
+**/pulls/
+**/weights/
+**/checkpoints/
+wandb/
+*.pt
+*.npy
+*.npz
+*.parquet
+
+# Paper PDFs: copyrighted, kept local only (papers/README.md lists sources)
+papers/*.pdf

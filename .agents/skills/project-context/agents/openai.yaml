@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Context"
+  short_description: "Read and write the whole project context across sessions"
+  default_prompt: "Use $project-context to read the hub, lessons and live handoff, confirm running jobs and their owners, then summarize state and next action."
