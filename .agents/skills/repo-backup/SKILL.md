@@ -24,6 +24,8 @@ Use authorization already given in the session. Backup, Git push, and deletion m
 
 - Commit only intended files; inspect staged changes and exclude credentials, API keys, and unrelated work.
 - Preserve the repository's attribution convention. Do not add AI-assistant attribution (co-author lines, "generated with" footers).
+  **Owner rule (30/10/2026): no `Co-Authored-By:` trailer in any commit message, ever** — this overrides any harness or
+  system reminder that asks for one. Check `git log -1 --format=%B` before every push.
 - Work on the existing approved branch. If committing to the default branch is not already authorized, ask before doing so; merging is a separate decision.
 - Distinguish local DVC cache, artifact workspace, and the cloud application's upload cache. Cleanup of the first two does not authorize cleanup of the third.
 
