@@ -71,3 +71,16 @@ def test_method_runs(name):
     M2.load_state(s)
     for v in views:
         assert (M2.evaluate()[v] == views[v]).all()
+
+
+def test_canperfl_finetunes_fedavg_state(tmp_path):
+    env = ToyEnv()
+    p, b = env.lay.init(42, 1)
+    torch.save({"method": "fedavg", "cfg": env.cfg, "round": 50, "method_state": {"p": p[0], "b": b[0]}},
+               tmp_path / "state.pt")
+    env.hp["init"] = str(tmp_path / "*.pt")
+    M = importlib.import_module("methods.canperfl").Method(env)
+    before = M.evaluate()["client"]
+    assert (before == M.evaluate()["global"]).all()                  # untouched clients = the FedAvg model
+    assert np.isfinite(M.round(1, 1e-3)["train_loss"])
+    assert not torch.equal(M.bank_p[0], p[0])

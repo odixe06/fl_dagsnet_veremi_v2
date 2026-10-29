@@ -65,7 +65,8 @@ class Method(fedavg.Method):
         N = Ng.sum()
         self.p = ((Ng[live, None] / N) * wg_p).sum(0).float()                      # global over clusters
         self.b = ((Ng[live, None] / N) * wg_b).sum(0).float()
-        d = (self.trained.float() - self.p[None]).norm(dim=1)
+        # chunked: a (K, P) fp32 temporary is 4 GB per rank at W = 1 (Kaggle OOM 29/10)
+        d = torch.cat([(t.float() - self.p[None]).norm(dim=1) for t in self.trained.split(256)])
         dbar = env.allreduce((env.n * d).sum()) / env.allreduce(env.n.sum().clone())
         self.mu = 0.01 * (1 + d / (d + dbar + 1e-12))
         return {"train_loss": float(env.allreduce((loss * env.n).sum()) / N), "d_mean": float(dbar),

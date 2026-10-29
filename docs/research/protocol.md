@@ -52,8 +52,8 @@ Owner 29/10: được rút gọn số tham số mỗi client nếu đạt tiêu 
 2. Chọn W nhỏ nhất có macro-F1 val ≥ F1(full) − **0,01**. Khóa W trước mọi run FL.
 3. Run centralized báo cáo (train + val → test) cho cả full và W đã chọn.
 
-**Đã khóa: W = 1** (owner 29/10, trước khi cổng W = 0,75 xong; val F1 lúc chốt: W 1 ep13 0,964 · 0,5 ep15 0,947 · 0,375 ep20 0,942 ·
-0,25 ep20 0,930). Số tham số: W 1 395.408 · 0,75 224.560 · 0,5 101.712 · 0,375 58.288 · 0,25 26.864.
+**Đã khóa: W = 1** (owner 29/10, trước khi cổng xong). Cổng hoàn tất (val macro-F1 ep20): W 1 0,9648 · 0,75 0,9585 · 0,5 0,9481 ·
+0,375 0,9417 · 0,25 0,9296 ⇒ W = 0,75 **đạt** (−0,0063), nhưng owner 30/10 giữ W = 1 (không chạy lại). Số tham số: W 1 395.408 · 0,75 224.560 · 0,5 101.712 · 0,375 58.288 · 0,25 26.864.
 
 Centralized dùng batch lớn (4.096, như build DAGSNet cũ) vì 37M dòng ở batch 64 không chạy được trong ngân sách; đây là deviation của
 riêng kịch bản centralized.

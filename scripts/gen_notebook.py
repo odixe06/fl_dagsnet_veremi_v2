@@ -82,6 +82,7 @@ def main():
     ap.add_argument("--args", default="", help="replace the run_fl.py command line (e.g. a centralized script)")
     ap.add_argument("--sha", default="")
     ap.add_argument("--resume-kernel", default="", help="<owner>/<slug> whose output holds <run>/state.pt")
+    ap.add_argument("--input-kernel", default="", help="<owner>/<slug> mounted read-only under /kaggle/input (e.g. CANPerFL's FedAvg)")
     a = ap.parse_args()
     sha = a.sha or subprocess.run(["git", "-C", ROOT, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     nb = nbformat.v4.new_notebook()
@@ -97,7 +98,7 @@ def main():
     meta = {"id": f"{a.owner}/{a.slug}", "title": a.slug, "code_file": f"{a.slug}.ipynb", "language": "python",
             "kernel_type": "notebook", "is_private": True, "enable_gpu": True, "enable_internet": True,
             "machine_shape": "NvidiaTeslaT4", "docker_image": RUNTIME["docker_image"],
-            "dataset_sources": [DATASET], "kernel_sources": [a.resume_kernel] if a.resume_kernel else [],
+            "dataset_sources": [DATASET], "kernel_sources": [k for k in (a.resume_kernel, a.input_kernel) if k],
             "competition_sources": [], "model_sources": []}
     json.dump(meta, open(os.path.join(out, "kernel-metadata.json"), "w"), indent=1)
     print(out, sha)
