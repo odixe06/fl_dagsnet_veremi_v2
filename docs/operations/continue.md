@@ -1,4 +1,4 @@
-# Continue — bàn giao sống, 30/10/2026 ~00:05
+# Continue — bàn giao sống, 30/10/2026 ~00:40
 
 **File duy nhất cho "đang ở đâu, làm gì tiếp".** Đọc [CONTEXT](../../CONTEXT.md) → [LESSONS](../../LESSONS.md) → trang này. Sửa tại chỗ.
 
@@ -11,6 +11,13 @@
 | `fl2-cgate-w05` | accanniez | W = 0,5 | ep12 0,946 |
 | `fl2-cgate-w0375` | khanhmay0304 | W = 0,375 | ep17 0,942 |
 | `fl2-cgate-w025` | minhtran0601 | W = 0,25 | **xong**: ep20 0,9296 |
+| `fl2-mobihet` | trietbackup | FL 50 round W = 1, source `6617261`, budget 11,5 h | push 30/10 ~00:30 |
+| `fl2-fedavg` | trietbackup (session 2) | như trên | push |
+| `fl2-fedprox` | catbaochau | như trên | push |
+| `fl2-scaffold` | catbaochau (session 2) | như trên | push |
+| `fl2-fedproto` | minhtriethihi | như trên | push |
+| `fl2-afpha` | minhtriethihi (session 2) | như trên | push |
+| `fl2-central-w1` | minhtran0601 | centralized báo cáo W = 1, 50 epoch, train+val → test | push 29/10 |
 | `fl2-probe-fedavg` v3 | odixe0502 | FedAvg W = 1, lịch 50 round, budget 1,5 h (run `fl2-probe-fedavg-v3`) | r6 test 0,865; 223 s train + 16 s eval / round |
 
 Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <acct> -- kaggle kernels status <acct>/<slug>`; log live
@@ -26,8 +33,8 @@ Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <ac
 
 ## Bước tiếp
 
-1. Gate xong ⇒ W nhỏ nhất có F1 val ep20 ≥ F1(W=1) − 0,01 ⇒ ghi CONTEXT + protocol, khóa.
-2. Sinh notebook 50 round cho mọi phương pháp với W đã khóa (`scripts/gen_notebook.py --method <m> --width W --max-hours 11.5`),
+1. **W = 1 đã khóa** (owner 30/10); gate w075/w05/w1 còn chạy chỉ để ghi nhận.
+2. Còn chưa push (chờ slot): fd_ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd. Sinh notebook 50 round với W = 1 (`scripts/gen_notebook.py --method <m> --width W --max-hours 11.5`),
    push theo quota (`kaggle_account.py quota`). Phương pháp 2 model (mobihet, nilm, pfedes) ~3× FedAvg ⇒ có thể cần session 2
    (`--resume-kernel <acct>/<slug>`; cùng `--run`).
 3. Centralized báo cáo (`run_central.py` không `--gate`, 50 epoch) cho W = 1 và W đã khóa.
@@ -37,6 +44,6 @@ Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <ac
 ## Việc tay (owner)
 
 - Tải 3 PDF còn thiếu vào `papers/` (tên file trong [papers/README](../../papers/README.md)): APFed, CANPerFL, V2X-HtFL.
-- Đăng nhập Kaggle CLI cho 10 account còn thiếu (`kaggle_account.py list`: anhtruong1909, annhannh331, annhtnt, catbaochau, dinhan25,
-  minhtriethihi, nguyenminhtran060113, takids1909, thuyanh316, trietbackup):
+- Đăng nhập Kaggle CLI cho 7 account còn thiếu (`kaggle_account.py list`: anhtruong1909, annhannh331, annhtnt, dinhan25,
+  nguyenminhtran060113, takids1909, thuyanh316). minhtrit06 hết GPU quota tới 31/10:
   `python .claude/skills/kaggle-training-notebook/scripts/kaggle_account.py add-account <user>`.

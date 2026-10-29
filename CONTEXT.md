@@ -24,8 +24,8 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 - 16/19 phương pháp code + test (toy CPU, smoke GPU compile 100 xe). Thiếu APFed, V2X-HtFL, CANPerFL (chờ PDF của owner).
 - Quyết định owner 29/10 bổ sung: gộp model theo n_k mọi phương pháp; MobiHet gộp n_k; AFPHA cụm scenario×run + μ thích nghi;
   TinyProto-FP; headline FedProto/FedTGP/TinyProto = luật prototype.
-- Kaggle: cổng độ rộng centralized đang chạy (w1 ep11 0,962 · w0,5 ep12 0,946 · w0,375 ep17 0,942 · w0,25 xong 0,930 · w0,75 mới push);
-  probe FedAvg W = 1: 223 s/round toàn 5.343 xe trên 2×T4, r6 test 0,865. **W chưa khóa.**
+- **W = 1 khóa (owner 29/10)**: DAGSNet full 395.408 tham số, bỏ qua cổng W = 0,75 (lúc chốt: w1 ep13 0,964 · w0,5 ep15 0,947 ·
+  w0,375 0,942 · w0,25 0,930). Run FL 50 round đang chạy — xem [continue](docs/operations/continue.md).
 
 ## Cần biết → mở
 
