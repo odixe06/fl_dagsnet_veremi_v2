@@ -46,7 +46,11 @@ the `KGAT_` bearer used here does not carry the cancel scope. Do not substitute 
 metadata ID for a session ID, and do not read a permission error as "wrong id" — try it at most
 once, then go manual.
 
-Rechecked in Kaggle CLI 2.2.5 on 2026-10-27, `KaggleApi.cancel_kernel_run(owner, slug)` does not exist. The CLI can
+Rechecked in Kaggle CLI 2.2.5 on 2026-10-27, `KaggleApi.cancel_kernel_run(owner, slug)` does not exist. Rechecked 2026-10-30 in
+`kagglesdk` (bundled with CLI 2.2.5): `KernelsApiService.cancel_kernel_session` exists
+(`/api/v1/kernels/cancel-session/{kernel_session_id}`), but **no API response returns a `kernel_session_id`**
+(`ApiSaveKernelResponse` has `kernel_id`/`version_number`, `ApiGetKernelSessionStatusResponse` only status/failure,
+`ApiListKernelSessionOutputResponse` files/log) — the id is unobtainable, so the route stays closed. The CLI can
 prove version status but cannot cancel. `kernels push --no-run` only saves a new version without
 starting it; it does not stop an existing worker. Keep the notebook budget/stall guard:
 
