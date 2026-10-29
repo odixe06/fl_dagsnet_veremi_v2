@@ -47,10 +47,12 @@ def main():
     if a.subset:
         clients = np.sort(np.random.default_rng(7).choice(5343, a.subset, replace=False)).tolist()
     env = fl.Env(cfg, hp, clients=clients, cache=a.cache or None)
+    M = importlib.import_module(f"methods.{a.method}").Method(env)
+    cfg = env.cfg                                                     # a method may change the model (LwFedNIDS prunes it)
     backend = "eager"
     if a.compile:
         grouped.compile_all()
-        ok, rep = local.compile_gate(env.lay, env.train, cfg, hp, torch.Generator(device=env.dev).manual_seed(0))
+        ok, rep = local.compile_gate(env.lay, env.train, env.cfg, hp, torch.Generator(device=env.dev).manual_seed(0))
         print(f"compile gate rank{env.rank}: {'PASS' if ok else 'FAIL -> eager'} {rep}", flush=True)
         if ok:
             backend = "compiled"
@@ -58,7 +60,6 @@ def main():
             grouped.TRAIN = grouped.EVAL = grouped.forward
             from core import optim
             optim.UPDATE = optim._update
-    M = importlib.import_module(f"methods.{a.method}").Method(env)
     main_rank = env.rank == 0
     os.makedirs(a.out, exist_ok=True)
     state_p = os.path.join(a.out, "state.pt")

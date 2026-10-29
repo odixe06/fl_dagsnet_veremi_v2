@@ -101,3 +101,17 @@ def test_pfedes_extractor_grouped_matches_reference():
     for i in range(2):
         m = ProxyExtractor(cfg); m.load_state_dict(lay.state_dict(p[i], torch.zeros(0)))
         assert torch.allclose(out[i], m(x[i]), atol=1e-5)
+
+
+def test_lwfednids_prune_plan_loads_and_shrinks():
+    from methods.lwfednids import prune_plan
+    for w in (1.0, 0.375):
+        cfg = width(w)
+        torch.manual_seed(0)
+        full = DAGSNet(cfg)
+        new, sd = prune_plan(cfg, full.state_dict())
+        m = DAGSNet(new)
+        m.load_state_dict(sd)                                   # strict: every shape consistent
+        n_full, n_new = sum(p.numel() for p in full.parameters()), sum(p.numel() for p in m.parameters())
+        assert n_new < 0.2 * n_full, (n_new, n_full)
+        assert torch.isfinite(m(torch.randn(3, 77))).all()
