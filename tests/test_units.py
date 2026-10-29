@@ -89,3 +89,15 @@ def test_local_epoch_visits_every_row_once():
     local.local_epoch(lay, flat, bufs, data, torch.arange(5), cfg, hp, 1e-3, gen, loss_fn=loss_fn)
     assert (seen == 1).all()
     assert (flat != before).any(1).all()
+
+
+def test_pfedes_extractor_grouped_matches_reference():
+    from methods.pfedes import ProxyExtractor, g_forward
+    cfg = width(0.25)
+    lay = Layout(cfg, make=ProxyExtractor)
+    p, _ = lay.init(3, 2)
+    x = torch.randn(2, 5, 77)
+    out = g_forward(lay.params(p), x, cfg)
+    for i in range(2):
+        m = ProxyExtractor(cfg); m.load_state_dict(lay.state_dict(p[i], torch.zeros(0)))
+        assert torch.allclose(out[i], m(x[i]), atol=1e-5)

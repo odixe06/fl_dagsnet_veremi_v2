@@ -11,9 +11,10 @@ from core.dagsnet import DAGSNet
 
 
 class Layout:
-    def __init__(self, cfg):
-        self.cfg = cfg
-        m = DAGSNet(cfg)
+    def __init__(self, cfg, make=DAGSNet):
+        """make(cfg) -> nn.Module whose parameters/BN buffers this layout flattens (DAGSNet unless a method brings its own)."""
+        self.cfg, self.make = cfg, make
+        m = make(cfg)
         self.p = [(k, tuple(v.shape)) for k, v in m.named_parameters()]
         self.b = [(k, tuple(v.shape)) for k, v in m.state_dict().items() if k.endswith(("running_mean", "running_var"))]
         self.P = sum(math.prod(s) for _, s in self.p)
@@ -49,9 +50,9 @@ class Layout:
 
     def init(self, seed, g=1, device="cpu"):
         torch.manual_seed(seed)
-        sd = DAGSNet(self.cfg).state_dict()
+        sd = self.make(self.cfg).state_dict()
         p = torch.cat([sd[k].reshape(-1).float() for k, _ in self.p])
-        b = torch.cat([sd[k].reshape(-1).float() for k, _ in self.b])
+        b = torch.cat([sd[k].reshape(-1).float() for k, _ in self.b]) if self.b else torch.zeros(0)
         return p.to(device).repeat(g, 1), b.to(device).repeat(g, 1)
 
     def state_dict(self, p_row, b_row):

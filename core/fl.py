@@ -82,5 +82,5 @@ class Env:
     def eval_clients(self, bank_p, bank_b):
         """bank rows indexed by local client index."""
         cms = evaluate.own_cm(self.lay, bank_p, bank_b, self.test, self.cfg,
-                              torch.arange(self.K, device=self.dev), max_rows=self.hp.get("eval_rows", 1 << 17))
+                              torch.arange(self.K, device=self.dev), max_rows=self.hp.get("eval_rows", 1 << 15))
         return self.gather_cms(cms)

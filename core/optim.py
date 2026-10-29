@@ -7,13 +7,14 @@ function so torch.compile can fuse it (FUSED, set by compile_all): unfused it co
 import torch
 
 
-def _update(flat, grad, m, v, t, lr, active, wd, b1, b2, eps, clip):
+def _update(flat, grad, m, v, t, lr, active, wd, b1, b2, eps, clip, segments):
     finite = torch.isfinite(grad).all(1)
     active = active & finite
     grad = torch.where(finite[:, None], grad, torch.zeros_like(grad))
-    norm = grad.norm(dim=1)
+    G = grad.shape[0]
+    norm = grad.view(G, segments, -1).norm(dim=2)                      # (G, models): clip each model separately
     if clip:
-        grad = grad * (clip / (norm + 1e-6)).clamp(max=1.0)[:, None]
+        grad = (grad.view(G, segments, -1) * (clip / (norm + 1e-6)).clamp(max=1.0)[:, :, None]).view(G, -1)
     a = active[:, None]
     t = t + active.double()
     tt = t.clamp_min(1)[:, None]
@@ -35,17 +36,17 @@ def compile_all():
 
 
 class GroupAdamW:
-    def __init__(self, flat, wd=1e-4, betas=(0.9, 0.999), eps=1e-8, clip=1.0):
-        self.wd, (self.b1, self.b2), self.eps, self.clip = wd, betas, eps, clip
+    def __init__(self, flat, wd=1e-4, betas=(0.9, 0.999), eps=1e-8, clip=1.0, segments=1):
+        self.wd, (self.b1, self.b2), self.eps, self.clip, self.segments = wd, betas, eps, clip, segments
         self.m = torch.zeros_like(flat)
         self.v = torch.zeros_like(flat)
         self.t = torch.zeros(flat.shape[0], device=flat.device, dtype=torch.float64)
 
     @torch.no_grad()
     def step(self, flat, grad, lr, active):
-        """flat, grad (G, P); active (G,) bool; lr float or 0-d tensor. Returns (per-client grad norm, applied mask)."""
+        """flat, grad (G, P); active (G,) bool; lr float or 0-d tensor. Returns ((G, segments) grad norms, applied mask)."""
         lr = torch.as_tensor(lr, dtype=flat.dtype, device=flat.device)
         new, m, v, self.t, norm, active = UPDATE(flat, grad, self.m, self.v, self.t, lr, active,
-                                                 self.wd, self.b1, self.b2, self.eps, self.clip)
+                                                 self.wd, self.b1, self.b2, self.eps, self.clip, self.segments)
         flat.copy_(new); self.m.copy_(m); self.v.copy_(v)
         return norm, active

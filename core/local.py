@@ -57,14 +57,27 @@ class Ctx:
     __slots__ = ("P", "B", "x", "y", "mask", "rows", "clients", "step", "flat", "G", "Gfix")
 
     def pad(self, t):
-        return t if t.shape[0] == self.Gfix else torch.cat([t, t[:1].expand(self.Gfix - t.shape[0], *t.shape[1:])])
+        return pad_rows(t, self.Gfix)
 
 
-def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, grad_fn=None, opt=None):
-    """Train rows `flat` (G, P) / `bufs` (G, Bn) in place for one epoch of each client's data.
+def pad_rows(t, Gfix):
+    """(G, ...) -> (Gfix, ...) by repeating row 0 (padding clients are never active, their rows are never used)."""
+    return t if t.shape[0] == Gfix else torch.cat([t, t[:1].expand(Gfix - t.shape[0], *t.shape[1:])])
 
-    loss_fn(ctx) -> (G,) per-client loss to minimise (default CE); grad_fn(ctx, grad) may edit (G, P) gradients in place
-    (SCAFFOLD correction, proximal terms done analytically, ...). Returns dict of per-client stats.
+
+def group_size(off, clients, hp):
+    """Fixed per-step client count Gfix that local_epoch pads a group to (one compiled shape)."""
+    n = off[clients + 1] - off[clients]
+    return max(len(clients), hp["group_rows"] // slot(n.max().item(), hp["batch"]))
+
+
+def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, grad_fn=None, opt=None, models=1):
+    """Train rows `flat` (G, models*P) / `bufs` (G, models*Bn) in place for one epoch of each client's data.
+
+    models > 1: each row holds that many models of layout `lay` back to back (e.g. MobiHet private | proxy), trained by one
+    AdamW with grad-norm clip per model; ctx.P / ctx.B are then lists of per-model dicts and loss_fn returns a list of new
+    BN dicts. loss_fn(ctx) -> ((G,) per-client loss to minimise, new BN) (default CE); grad_fn(ctx, grad) may edit the
+    (G, models*P) gradient in place (SCAFFOLD correction, proximal terms done analytically, ...).
     """
     X, Y, off = data.X, data.Y, data.off
     G = len(clients)
@@ -72,12 +85,12 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
     b = slot(n.max().item(), hp["batch"])
     steps = int(math.ceil(n.max().item() / b))
     ctx = Ctx()
-    ctx.G, ctx.Gfix = G, max(G, hp["group_rows"] // b)
+    ctx.G, ctx.Gfix = G, group_size(off, clients, hp)
     clients_p = ctx.pad(clients)
     n_p = torch.cat([n, n.new_zeros(ctx.Gfix - G)])
     flat_p, bufs_p = ctx.pad(flat).clone(), ctx.pad(bufs).clone()
     pos, valid = permutations(off[clients_p], n_p, steps, b, gen)
-    opt = opt or GroupAdamW(flat_p, wd=hp["weight_decay"], clip=hp["clip"])
+    opt = opt or GroupAdamW(flat_p, wd=hp["weight_decay"], clip=hp["clip"], segments=models)
     scale = hp.get("loss_scale", 2.0 ** 12)
     loss_sum = torch.zeros(ctx.Gfix, device=flat.device)
     skipped = torch.zeros(ctx.Gfix, device=flat.device)
@@ -86,12 +99,16 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
     # One autograd leaf per parameter tensor, sharing storage with flat_p (the optimizer updates flat_p in place, the
     # leaves see it). Leaves that are views of one (G, P) tensor would make every SliceBackward allocate and add a full
     # (G, P) zero tensor: 85 % of step time at G = 32 (profiled 29/10).
-    leaves = {k: v.detach().requires_grad_(True) for k, v in lay.params(flat_p).items()}
+    P, Bn = lay.P, lay.B
+    leaves = [{k: v.detach().requires_grad_(True) for k, v in lay.params(flat_p[:, m * P:(m + 1) * P]).items()}
+              for m in range(models)]
+    bviews = [lay.bufs(bufs_p[:, m * Bn:(m + 1) * Bn]) for m in range(models)]
+    one = models == 1
     for s in range(steps):
         sl = slice(s * b, (s + 1) * b)
         rows, mask = pos[:, sl], valid[:, sl]
         active = mask.any(1)
-        ctx.P, ctx.B, ctx.flat = leaves, lay.bufs(bufs_p), flat_p
+        ctx.P, ctx.B, ctx.flat = (leaves[0], bviews[0], flat_p) if one else (leaves, bviews, flat_p)
         ctx.x, ctx.y, ctx.mask, ctx.rows, ctx.step = X[rows], Y[rows].long(), mask, rows, s
         with torch.autocast("cuda", dtype=torch.float16, enabled=hp.get("amp", True) and X.is_cuda):
             if loss_fn is None:
@@ -101,14 +118,16 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
                 loss, newB = loss_fn(ctx)
         loss = torch.where(active, loss, torch.zeros_like(loss))
         (loss.sum() * scale).backward()
-        grad = torch.cat([leaves[k].grad.reshape(ctx.Gfix, -1) for k, _ in lay.p], dim=1) / scale
-        for v in leaves.values():
-            v.grad = None
+        grad = torch.cat([lv[k].grad.reshape(ctx.Gfix, -1) for lv in leaves for k, _ in lay.p], dim=1) / scale
+        for lv in leaves:
+            for v in lv.values():
+                v.grad = None
         if grad_fn is not None:
             grad_fn(ctx, grad)
         _, ok = opt.step(flat_p, grad, lr, active)
-        nb = lay.flat_bufs(newB)
-        bufs_p.copy_(torch.where(ok[:, None], nb, bufs_p))
+        if Bn:
+            nb = lay.flat_bufs(newB) if one else torch.cat([lay.flat_bufs(d) for d in newB], dim=1)
+            bufs_p.copy_(torch.where(ok[:, None], nb, bufs_p))
         loss_sum += loss.detach() * ok
         skipped += (active & ~ok).float()
         applied += ok.float()
