@@ -38,4 +38,4 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 | Dựng DAGSNet cho client | [knowledge/dagsnet](knowledge/dagsnet.md) |
 | Máy local, Kaggle, lỗi kernel | [local-env](knowledge/local-env.md), [kaggle](docs/operations/kaggle.md), [sổ lỗi](docs/operations/notebook-errors.md) |
 | Bài báo, cái nào thiếu | [papers/README](papers/README.md) |
-| Phương pháp MobiHet gốc, kết quả 20/50/100 client | repo `../mobihet`: `docs/methods/full-drift/design.md`, `results/final/report.md` |
+| Phương pháp MobiHet: phát triển tiếp, kết quả v1 20/50/100 client | repo [`odixe06/mobihet`](https://github.com/odixe06/mobihet) (v2; v1 ở `history/v1/docs/methods/full-drift/`) |

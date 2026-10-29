@@ -4,7 +4,9 @@
     python scripts/run_fl.py --method fedavg --subset 400 --rounds 3 --out runs/smoke             # local probe
 
 Per round: train every client one local epoch, aggregate, evaluate each model view, append rounds.jsonl, save the
-confusion matrices (cms_rXXX.npz). Resume state at a budget stop (and every --save-every rounds if set): each rank writes
+confusion matrices (cms_rXXX.npz) and the round's small server-side tensors (models/rXXX.pt: global model / proxy /
+prototypes / control variates — every tensor of M.state() under 10 M elements, i.e. not the per-client banks). Resume state at a
+budget stop, at the last round (the full state incl. per-client banks, for later tests), and every --save-every rounds if set: each rank writes
 its own (state.pt on rank 0 with the round and RNG states, state_rank<r>.pt on rank r > 0: per-client banks differ per
 rank), atomically. Per-client banks are GBs at W = 1, and /kaggle/working holds ~20 GB: a resumed run deletes the copied-in
 state once loaded, so the disk never holds two copies.
@@ -144,7 +146,11 @@ def main():
             if run:
                 run.log({k: v for k, v in row.items() if not isinstance(v, list)}, step=r)
         r_done = r
-        if a.save_every and r % a.save_every == 0:
+        if main_rank:
+            snap = {k: v for k, v in M.state().items() if torch.is_tensor(v) and v.numel() < 10_000_000}
+            os.makedirs(os.path.join(a.out, "models"), exist_ok=True)
+            torch.save(snap, os.path.join(a.out, "models", f"r{r:03d}.pt"))
+        if (a.save_every and r % a.save_every == 0) or r == hp["rounds"]:
             save(r); saved = r
         worst = max(worst, time.monotonic() - t)
     if stopped and r_done > saved:
