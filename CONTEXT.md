@@ -19,12 +19,13 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 - Task < 1 h chạy local; task dài chạy Kaggle (16 account; CLI mới đăng nhập 6, owner bổ sung sau). Env conda `nckh`.
 - Tốc độ train phải tối ưu ⇒ `core/grouped.py`: nhiều client một bước (bmm), dữ liệu thường trú GPU.
 
-## Trạng thái — 29/10 tối
+## Trạng thái — 30/10 00:05
 
-- Khung repo, skills (chép từ `mobihet-features`), knowledge (máy, dataset, DAGSNet 77 đầu vào), protocol xong.
-- Lõi `core/` + FedAvg, FedProx, SCAFFOLD xong; 9 test PASS (grouped ≡ DAGSNet fp64, AdamW ≡ torch, metric ≡ sklearn, eval ≡ tham chiếu).
-- 29/10 ~22:25: 4 notebook cổng độ rộng centralized + probe FedAvg đang chạy Kaggle ([continue](docs/operations/continue.md)). W chưa chốt.
-- Smoke local FedAvg 400 client: macro-F1 0,378 → 0,835 → 0,844 (r1–r3); tốc độ ~10× sau sửa (LESSONS).
+- 16/19 phương pháp code + test (toy CPU, smoke GPU compile 100 xe). Thiếu APFed, V2X-HtFL, CANPerFL (chờ PDF của owner).
+- Quyết định owner 29/10 bổ sung: gộp model theo n_k mọi phương pháp; MobiHet gộp n_k; AFPHA cụm scenario×run + μ thích nghi;
+  TinyProto-FP; headline FedProto/FedTGP/TinyProto = luật prototype.
+- Kaggle: cổng độ rộng centralized đang chạy (w1 ep11 0,962 · w0,5 ep12 0,946 · w0,375 ep17 0,942 · w0,25 xong 0,930 · w0,75 mới push);
+  probe FedAvg W = 1: 223 s/round toàn 5.343 xe trên 2×T4, r6 test 0,865. **W chưa khóa.**
 
 ## Cần biết → mở
 
