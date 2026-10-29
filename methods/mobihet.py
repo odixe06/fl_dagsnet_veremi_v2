@@ -71,7 +71,7 @@ class Method:
         self.exact = self.g_p.clone()                               # server's exact proxy (error feedback)
         self.version = 0
         self.aux = env.hp["batch"] // 2
-        self.weighted = env.hp.get("agg", "mean") == "weighted"          # original: unweighted mean over clients
+        self.weighted = env.hp.get("agg", "weighted") == "weighted"      # owner 29/10: n_k weights (original: 1/K)
         self.gen_q = torch.Generator(device=dev).manual_seed(env.hp["seed"] * 7 + env.rank)
         self.gen_g = torch.Generator(device=dev).manual_seed(env.hp["seed"] * 11 + env.rank)
         self._bootstrap()

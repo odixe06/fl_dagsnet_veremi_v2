@@ -11,7 +11,7 @@ from core.dagsnet import width
 from core.data import Split
 from core.flat import Layout
 
-METHODS = ["fedavg", "fedprox", "scaffold", "mobihet", "pfedes", "fedproto", "fedtgp", "tinyproto", "nilm", "fd_ids"]
+METHODS = ["fedavg", "fedprox", "scaffold", "mobihet", "pfedes", "fedproto", "fedtgp", "tinyproto", "nilm", "fd_ids", "afpha", "perfedskd"]
 
 
 class ToyEnv:
