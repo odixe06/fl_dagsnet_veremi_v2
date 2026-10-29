@@ -23,27 +23,31 @@
 Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <acct> -- kaggle kernels status <acct>/<slug>`; log live
 `... kernels logs <acct>/<slug> --follow` (dòng `^ep..`/`^r..`); W&B API (xem lịch sử phiên 29/10).
 
-## Dở dang phiên 30/10 (làm tiếp NGAY)
+## Trạng thái 30/10 ~01:30 (giờ VN; W&B UTC 18:30 29/10)
 
-1. **Code mới chưa kiểm GPU** (commit WIP 30/10, chưa có run nào dùng):
-   - `scripts/run_fl.py`: mỗi rank ghi state riêng (`state.pt` rank 0 + `state_rank<r>.pt`); chỉ ghi khi dừng vì budget
-     (hoặc `--save-every N`); resume nạp xong thì xóa file đã copy vào (đĩa `/kaggle/working` ~20 GB, bank W = 1 = 4,2 GB/rank);
-     quyết định dừng budget all_reduce MAX (tránh 2 rank lệch round → treo).
-   - **Bug cũ (SHA `6617261`, đang chạy):** chỉ rank 0 ghi `state.pt` ⇒ phương pháp per-client (fedproto, mobihet) **resume sai**
-     (rank 1 nạp bank của rank 0). Nếu `fl2-mobihet`/`fl2-fedproto` hết 11,5 h trước r50 ⇒ không resume, chạy lại bằng SHA mới.
-     Global (fedavg, fedprox, scaffold, afpha) resume đúng.
-   - `methods/apfed.py` mới (APFed = FedALA-like: θ ⊙ trên base, head toàn cục, θ⁰ = 1, α = 1, 1 lượt θ/round; θ ở host pinned,
-     checkpoint fp16 của 1 − θ). Test toy pass (23/23). Smoke GPU local bị dừng giữa chừng — chạy lại:
-     `python scripts/run_fl.py --method apfed --subset 60 --rounds 3 --width 0.25 --out <tmp> --set group_rows=2048 eval_rows=4096`
-     (kiểm `theta_mean` < 1 từ r2, F1 hợp lý), rồi kiểm resume: `--max-hours` nhỏ để dừng sau r1, chạy lại, so r3.
-   - Thiếu doc `docs/methods/` cho APFed (deviation đã ghi trong docstring).
-2. Smoke xong ⇒ commit + push ⇒ sinh notebook bằng SHA mới, push **song song mọi account** (owner 30/10: đủ CLI trừ dinhan25):
-   fd_ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed (+ V2X-HtFL, CANPerFL khi build xong). Kiểm quota trước
-   (`kaggle_account.py quota`); mỗi account 2 session.
-3. **V2X-HtFL** (owner 30/10: bỏ phần generator StyleGAN-XL): ETF cố định + projection d×d weight-norm + loss CurricularFace;
-   server prototype toàn cục trainable (FedTGP-like) margin thích nghi Eq 16–17; L_s thay bằng kéo feature chiếu về prototype
-   toàn cục, trọng số μλ_k (Eq 22, λ_k = |D|/(|D|+|D_k|)). Bài không nêu s, m, γ, τ, μ ⇒ chọn + ghi deviation.
-4. **CANPerFL**: PDF thật đã có (`papers/canperfl.pdf`, owner 30/10) — chưa đọc.
+W = 1 giữ (owner 30/10) dù cổng W = 0,75 đạt (−0,0063). SHA `6617261` = code cũ (resume per-client SAI: chỉ rank 0 ghi state);
+SHA `924bdcd`/`73bb96d` = code mới (state theo rank, ghi khi dừng budget).
+
+| kernel | account | SHA | tiến độ |
+|---|---|---|---|
+| fl2-fedavg | trietbackup | 6617261 | r18 0,887; 240 s/round ⇒ xong ~3,3 h |
+| fl2-fedprox | catbaochau | 6617261 | r15 0,875 |
+| fl2-scaffold | catbaochau | 6617261 | r15 0,248 — **dao động mạnh** (0,23 ↔ 0,85, trùng ‖c‖ vọt); để chạy tới r50 |
+| fl2-fedproto | minhtriethihi | 6617261 | r11 client 0,863 / proto 0,854; 271 s/round ⇒ vừa 1 session |
+| fl2-mobihet | trietbackup | 6617261 | **r1 1.335 s + eval 398 s; r2 > 36 min** ⇒ ≥ 30 h, không resume được ⇒ đề nghị owner dừng tay; điều tra (FLOPs chỉ 3× FedAvg, eval 10× FedProto cùng hàm ⇒ nghi nghẽn bộ nhớ GPU / recompile) rồi chạy lại SHA mới |
+| fl2-central-w1 | minhtran0601 | 6617261 | ep18 |
+| fl2-afpha | minhtriethihi | 6617261 | ERROR (OOM norm (K,P)) — đã sửa, chạy lại = fl2-afpha-v2 |
+| fl2-afpha-v2, fd-ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed | annhannh331, annhtnt, nguyenminhtran060113, takids1909, thuyanh316, anhtruong1909, accanniez, khanhmay0304, odixeuit | 924bdcd | push 30/10 ~01:00 |
+| fl2-v2x-htfl | dinhan25 (token-only) | 73bb96d | push 30/10 ~01:25 |
+
+Bước tiếp:
+1. MobiHet: tìm nguyên nhân chậm (W&B system metrics GPU memory; profile local subset W = 1), sửa, chạy lại SHA mới.
+2. CANPerFL: khi fl2-fedavg xong r50 ⇒ `gen_notebook.py --method canperfl --rounds 10 --input-kernel trietbackup/fl2-fedavg
+   --set init='"/kaggle/input/**/fl2-fedavg/state.pt"'` (state.pt cũ ghi mỗi round ⇒ có r50).
+3. Chi phí: `scripts/cost.py` → `docs/research/cost.json` (FLOPs/dòng/round đo bằng FlopCounterMode, payload). Còn viết
+   `docs/research/cost.md` (Big-O + bảng: byte/client/round × K × 50, FLOPs = n_k × hệ số, server FLOPs, giây GPU/round thật).
+4. Doc `docs/methods/` cho APFed, V2X-HtFL, CANPerFL; sửa bảng "còn thiếu" trong papers/README.
+5. Theo dõi mọi run; pull output; `scripts/report.py`.
 
 ## Đã xong (29/10)
 
