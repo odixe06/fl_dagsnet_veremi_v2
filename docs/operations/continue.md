@@ -1,4 +1,4 @@
-# Continue — bàn giao sống, 30/10/2026 ~00:40
+# Continue — bàn giao sống, 30/10/2026 ~01:30
 
 **File duy nhất cho "đang ở đâu, làm gì tiếp".** Đọc [CONTEXT](../../CONTEXT.md) → [LESSONS](../../LESSONS.md) → trang này. Sửa tại chỗ.
 
@@ -23,6 +23,28 @@
 Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <acct> -- kaggle kernels status <acct>/<slug>`; log live
 `... kernels logs <acct>/<slug> --follow` (dòng `^ep..`/`^r..`); W&B API (xem lịch sử phiên 29/10).
 
+## Dở dang phiên 30/10 (làm tiếp NGAY)
+
+1. **Code mới chưa kiểm GPU** (commit WIP 30/10, chưa có run nào dùng):
+   - `scripts/run_fl.py`: mỗi rank ghi state riêng (`state.pt` rank 0 + `state_rank<r>.pt`); chỉ ghi khi dừng vì budget
+     (hoặc `--save-every N`); resume nạp xong thì xóa file đã copy vào (đĩa `/kaggle/working` ~20 GB, bank W = 1 = 4,2 GB/rank);
+     quyết định dừng budget all_reduce MAX (tránh 2 rank lệch round → treo).
+   - **Bug cũ (SHA `6617261`, đang chạy):** chỉ rank 0 ghi `state.pt` ⇒ phương pháp per-client (fedproto, mobihet) **resume sai**
+     (rank 1 nạp bank của rank 0). Nếu `fl2-mobihet`/`fl2-fedproto` hết 11,5 h trước r50 ⇒ không resume, chạy lại bằng SHA mới.
+     Global (fedavg, fedprox, scaffold, afpha) resume đúng.
+   - `methods/apfed.py` mới (APFed = FedALA-like: θ ⊙ trên base, head toàn cục, θ⁰ = 1, α = 1, 1 lượt θ/round; θ ở host pinned,
+     checkpoint fp16 của 1 − θ). Test toy pass (23/23). Smoke GPU local bị dừng giữa chừng — chạy lại:
+     `python scripts/run_fl.py --method apfed --subset 60 --rounds 3 --width 0.25 --out <tmp> --set group_rows=2048 eval_rows=4096`
+     (kiểm `theta_mean` < 1 từ r2, F1 hợp lý), rồi kiểm resume: `--max-hours` nhỏ để dừng sau r1, chạy lại, so r3.
+   - Thiếu doc `docs/methods/` cho APFed (deviation đã ghi trong docstring).
+2. Smoke xong ⇒ commit + push ⇒ sinh notebook bằng SHA mới, push **song song mọi account** (owner 30/10: đủ CLI trừ dinhan25):
+   fd_ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed (+ V2X-HtFL, CANPerFL khi build xong). Kiểm quota trước
+   (`kaggle_account.py quota`); mỗi account 2 session.
+3. **V2X-HtFL** (owner 30/10: bỏ phần generator StyleGAN-XL): ETF cố định + projection d×d weight-norm + loss CurricularFace;
+   server prototype toàn cục trainable (FedTGP-like) margin thích nghi Eq 16–17; L_s thay bằng kéo feature chiếu về prototype
+   toàn cục, trọng số μλ_k (Eq 22, λ_k = |D|/(|D|+|D_k|)). Bài không nêu s, m, γ, τ, μ ⇒ chọn + ghi deviation.
+4. **CANPerFL**: PDF thật đã có (`papers/canperfl.pdf`, owner 30/10) — chưa đọc.
+
 ## Đã xong (29/10)
 
 - 16 phương pháp code + test toy CPU (22 test) + smoke GPU compile (100 xe × 2 round): fedavg fedprox scaffold afpha fd_ids lwfednids
@@ -43,7 +65,6 @@ Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <ac
 
 ## Việc tay (owner)
 
-- Tải 3 PDF còn thiếu vào `papers/` (tên file trong [papers/README](../../papers/README.md)): APFed, CANPerFL, V2X-HtFL.
-- Đăng nhập Kaggle CLI cho 7 account còn thiếu (`kaggle_account.py list`: anhtruong1909, annhannh331, annhtnt, dinhan25,
-  nguyenminhtran060113, takids1909, thuyanh316). minhtrit06 hết GPU quota tới 31/10:
+- 3 PDF đã đủ (30/10): apfed, v2x_htfl, canperfl. Sửa bảng "còn thiếu" trong [papers/README](../../papers/README.md).
+- Kaggle CLI: owner báo 30/10 đã đủ trừ **dinhan25** (kiểm lại `kaggle_account.py list`). minhtrit06 hết GPU quota tới 31/10:
   `python .claude/skills/kaggle-training-notebook/scripts/kaggle_account.py add-account <user>`.
