@@ -22,8 +22,9 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 ## Trạng thái — 29/10 tối
 
 - Khung repo, skills (chép từ `mobihet-features`), knowledge (máy, dataset, DAGSNet 77 đầu vào), protocol xong.
-- Lõi `core/` xong + test tương đương grouped ↔ DAGSNet tham chiếu (fp64, train/eval/BN/gradient) PASS. FedAvg đang smoke local 400 client.
-- Chưa chạy gì trên Kaggle. W chưa chốt.
+- Lõi `core/` + FedAvg, FedProx, SCAFFOLD xong; 9 test PASS (grouped ≡ DAGSNet fp64, AdamW ≡ torch, metric ≡ sklearn, eval ≡ tham chiếu).
+- 29/10 ~22:25: 4 notebook cổng độ rộng centralized + probe FedAvg đang chạy Kaggle ([continue](docs/operations/continue.md)). W chưa chốt.
+- Smoke local FedAvg 400 client: macro-F1 0,378 → 0,835 → 0,844 (r1–r3); tốc độ ~10× sau sửa (LESSONS).
 
 ## Cần biết → mở
 

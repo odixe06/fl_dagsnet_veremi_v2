@@ -41,7 +41,8 @@ print(subprocess.run(["git", "-C", "/kaggle/temp/src", "log", "-1", "--format=%H
     yield "code", """import wandb
 # BEGIN INLINE WANDB CREDENTIAL — owner-authorized private notebook
 raise SystemExit("W&B credential not embedded: run embed_wandb_key.py")
-# END INLINE WANDB CREDENTIAL"""
+# END INLINE WANDB CREDENTIAL
+print("W&B authenticated")"""
     resume = ""
     if a.resume_kernel:
         resume = f"""prev = [p for p in glob.glob("/kaggle/input/**/{run}/state.pt", recursive=True)]
@@ -58,7 +59,8 @@ print(cmd)
 rc = subprocess.run(cmd, shell=True).returncode
 assert rc == 0, f"training exited {{rc}}"
 """
-    yield "code", f"""print(open("/kaggle/working/{run}/rounds.jsonl").read()[-3000:])"""
+    yield "code", f"""for f in glob.glob("/kaggle/working/{run}/*.jsonl"):
+    print(f, open(f).read()[-3000:])"""
 
 
 def main():
