@@ -71,6 +71,7 @@ class Method:
         self.exact = self.g_p.clone()                               # server's exact proxy (error feedback)
         self.version = 0
         self.aux = env.hp["batch"] // 2
+        self.weighted = env.hp.get("agg", "mean") == "weighted"          # original: unweighted mean over clients
         self.gen_q = torch.Generator(device=dev).manual_seed(env.hp["seed"] * 7 + env.rank)
         self.gen_g = torch.Generator(device=dev).manual_seed(env.hp["seed"] * 11 + env.rank)
         self._bootstrap()
@@ -163,15 +164,17 @@ class Method:
             for k, shape in lay.p:
                 d = delta[k].reshape(G, shape[0] if len(shape) > 1 else 1, -1)
                 sent, q, s = quantize(d, self.gen_q)
-                dsum[_slice(lay, k)] += sent.reshape(G, -1).sum(0).double()
+                wk = env.n[idx][:, None] if self.weighted else 1.0
+                dsum[_slice(lay, k)] += (wk * sent.reshape(G, -1)).sum(0).double()
                 codes.append(q); scales.append(s)
-            bsum += bufs[:, lay.B:].half().double().sum(0)
+            wb = env.n[idx][:, None].double() if self.weighted else 1.0
+            bsum += (wb * bufs[:, lay.B:].half().double()).sum(0)
             loss[idx] = st["loss"]
             if sampled < BYTES_SAMPLE:
                 for i in range(min(G, BYTES_SAMPLE - sampled)):
                     nbytes += packet_bytes([c[i] for c in codes], [s[i] for s in scales], bufs[i, lay.B:])
                 sampled += min(G, BYTES_SAMPLE - sampled)
-        K = env.allreduce(torch.tensor(float(env.K), device=env.dev))
+        K = env.allreduce(env.n.sum().clone() if self.weighted else torch.tensor(float(env.K), device=env.dev))
         self.exact = self.exact + (env.allreduce(dsum) / K).float()
         self.g_b = (env.allreduce(bsum) / K).float()
         # downlink: nearest Q3 of (exact − replica); every client rebuilds the same replica

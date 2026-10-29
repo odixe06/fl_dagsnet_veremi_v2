@@ -52,7 +52,13 @@ for f in glob.glob(os.path.join(os.path.dirname(prev[0]), "*")):
     shutil.copy(f, "/kaggle/working/{run}/")
 print("resumed from", prev[0])
 """
-    yield "code", resume + f"""os.environ.update(TORCHINDUCTOR_COMPILE_THREADS="1", PYTHONUNBUFFERED="1", OMP_NUM_THREADS="2")
+    yield "code", """t = time.monotonic()
+sys.path.insert(0, "/kaggle/temp/src")
+from core import data as D
+D.build_npy(D.find_root(), "/kaggle/temp/v4npy")    # one reader; every rank then memmaps (V4_NPY)
+print(f"npy cache built in {time.monotonic() - t:.0f}s")"""
+    yield "code", resume + f"""os.environ.update(TORCHINDUCTOR_COMPILE_THREADS="2", PYTHONUNBUFFERED="1", OMP_NUM_THREADS="2",
+                  V4_NPY="/kaggle/temp/v4npy")
 budget = {a.max_hours} - (time.monotonic() - T0) / 3600
 cmd = "cd /kaggle/temp/src && torchrun --standalone --nproc_per_node=2 {args}".replace("BUDGET", f"{{budget - 0.4:.2f}}")
 print(cmd)

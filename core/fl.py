@@ -49,6 +49,11 @@ class Env:
 
     @staticmethod
     def _sizes(root, cache):
+        npy = os.environ.get("V4_NPY")
+        if npy and os.path.exists(os.path.join(npy, "done")):
+            n = np.zeros(D.N_CLIENTS, np.int64)
+            n[np.load(os.path.join(npy, "train_ids.npy"))] = np.diff(np.load(os.path.join(npy, "train_off.npy")))
+            return n
         p = os.path.join(cache or ".", "train_sizes.npy")
         if os.path.exists(p):
             return np.load(p)
