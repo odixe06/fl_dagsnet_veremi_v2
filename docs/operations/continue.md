@@ -1,4 +1,4 @@
-# Continue — bàn giao sống, 30/10/2026 ~01:30
+# Continue — bàn giao sống, 30/10/2026 ~02:05
 
 **File duy nhất cho "đang ở đâu, làm gì tiếp".** Đọc [CONTEXT](../../CONTEXT.md) → [LESSONS](../../LESSONS.md) → trang này. Sửa tại chỗ.
 
@@ -37,8 +37,9 @@ SHA `924bdcd`/`73bb96d` = code mới (state theo rank, ghi khi dừng budget).
 | fl2-mobihet | trietbackup | 6617261 | **r1 1.335 s + eval 398 s; r2 > 36 min** ⇒ ≥ 30 h, không resume được ⇒ đề nghị owner dừng tay; điều tra (FLOPs chỉ 3× FedAvg, eval 10× FedProto cùng hàm ⇒ nghi nghẽn bộ nhớ GPU / recompile) rồi chạy lại SHA mới |
 | fl2-central-w1 | minhtran0601 | 6617261 | ep18 |
 | fl2-afpha | minhtriethihi | 6617261 | ERROR (OOM norm (K,P)) — đã sửa, chạy lại = fl2-afpha-v2 |
-| fl2-afpha-v2, fd-ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed | annhannh331, annhtnt, nguyenminhtran060113, takids1909, thuyanh316, anhtruong1909, accanniez, khanhmay0304, odixeuit | 924bdcd | push 30/10 ~01:00 |
-| fl2-v2x-htfl | dinhan25 (token-only) | 73bb96d | push 30/10 ~01:25 |
+| ~~fl2-afpha-v2, fd-ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed, v2x-htfl~~ | (cùng account dưới) | 924bdcd/73bb96d | **owner dừng tay** (không lưu model mỗi round) |
+| **fl2-<m>-r2**: afpha, fd-ids, lwfednids, pfedes, fedtgp, tinyproto, nilm, perfedskd, apfed, v2x-htfl | annhannh331, annhtnt, nguyenminhtran060113, takids1909, thuyanh316, anhtruong1909, accanniez, khanhmay0304, odixeuit, dinhan25 | **903ac42** | push 30/10 ~02:00, RUNNING; lưu `models/rXXX.pt` mỗi round + state đầy đủ r50 |
+| fl2-mobihet | trietbackup | 6617261 | **owner dừng tay**; MobiHet chuyển sang repo `odixe06/mobihet` |
 
 Bước tiếp:
 1. MobiHet: tìm nguyên nhân chậm (W&B system metrics GPU memory; profile local subset W = 1), sửa, chạy lại SHA mới.
