@@ -1,0 +1,164 @@
+{
+ "width": 1.0,
+ "dagsnet_forward_flops_per_row": 4452096,
+ "methods": {
+  "fedavg": {
+   "client_flops_per_row": 13297152.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 2.9867172675521823
+  },
+  "fedprox": {
+   "client_flops_per_row": 13297152.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 2.9867172675521823
+  },
+  "scaffold": {
+   "client_flops_per_row": 13297152.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 3176320,
+    "up": 3176320
+   },
+   "x_forward": 2.9867172675521823
+  },
+  "afpha": {
+   "client_flops_per_row": 13297152.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 2.9867172675521823
+  },
+  "fd_ids": {
+   "client_flops_per_row": 17749248.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 3.9867172675521823
+  },
+  "lwfednids": {
+   "client_flops_per_row": 1288036.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 39494,
+   "payload_bytes": {
+    "down": 162000,
+    "up": 162000
+   },
+   "x_forward": 0.2893100238629176
+  },
+  "pfedes": {
+   "client_flops_per_row": 35524368.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1404,
+    "up": 1404
+   },
+   "x_forward": 7.979245730550285
+  },
+  "fedproto": {
+   "client_flops_per_row": 13297152.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "up": 16448,
+    "down": 16384,
+    "note": "up = prototypes of classes present + counts"
+   },
+   "x_forward": 2.9867172675521823
+  },
+  "fedtgp": {
+   "client_flops_per_row": 17749248.0,
+   "server_flops_per_round_toy": 22653435904,
+   "n_params": 395408,
+   "payload_bytes": {
+    "up": 16384,
+    "down": 16384
+   },
+   "x_forward": 3.9867172675521823
+  },
+  "tinyproto": {
+   "client_flops_per_row": 17749248.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "up": 1664,
+    "down": 1664,
+    "masks_once": 512
+   },
+   "x_forward": 3.9867172675521823
+  },
+  "nilm": {
+   "client_flops_per_row": 26594304.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 5.9734345351043645
+  },
+  "perfedskd": {
+   "client_flops_per_row": 22201344.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688,
+    "note": "selected devices only; see selected_frac per round"
+   },
+   "x_forward": 4.986717267552182
+  },
+  "mobihet": {
+   "client_flops_per_row": 39926953.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "dense_reference": 1594688,
+    "bootstrap": {
+     "up": 197184,
+     "down": 197184
+    },
+    "measured": "rounds.jsonl bytes_up/bytes_down"
+   },
+   "x_forward": 8.968124901170146
+  },
+  "apfed": {
+   "client_flops_per_row": 26594304.0,
+   "server_flops_per_round_toy": 0,
+   "n_params": 395408,
+   "payload_bytes": {
+    "down": 1594688,
+    "up": 1594688
+   },
+   "x_forward": 5.9734345351043645
+  },
+  "v2x_htfl": {
+   "client_flops_per_row": 18289920.0,
+   "server_flops_per_round_toy": 68165238784,
+   "n_params": 461456,
+   "payload_bytes": {
+    "up": 16448,
+    "down": 16384,
+    "note": "up = prototypes of classes present + counts"
+   },
+   "x_forward": 4.108159392789374
+  }
+ }
+}

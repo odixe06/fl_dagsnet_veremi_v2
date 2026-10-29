@@ -6,6 +6,12 @@ login is only required for OAuth/global switching. No MCP/header-sync or Session
 installed in this checkout; dated MCP/switch recipes below are conditional historical procedures.
 Prefer `kaggle_as.py` with process-scoped credentials and live quota/slot checks.
 
+**Token-only accounts work for every CLI action (verified 30/10/2026, `dinhan25`).** `list` shows such an account as
+`CLI creds MISSING / MCP token yes`; that is not a blocker. `kaggle_as.py <user> -- kaggle ...` (push, status, output,
+kernels list) runs it by handing the child the token FILE PATH in `KAGGLE_API_TOKEN` (`~/.kaggle/accounts/<user>.mcp-token`,
+a `KGAT_` API key, mode 600); `quota` reads it too. Only `ensure`/global switching needs the OAuth snapshot. To add one,
+write the owner's API key to that file instead of asking for `add-account` / browser login.
+
 
 Use this reference when checking several saved accounts, selecting an authorized account for
 launch, or handing a run to another owner. Read the current account policy in `CONTEXT.md` and
@@ -27,7 +33,7 @@ conda run -n nckh python "$KAGGLE_ACCOUNT_HELPER" plan --gpu-hours 36.2 --sessio
 number of accounts or treat an old inventory as current. `quota` reads each OAuth snapshot via
 an explicit SDK file path, generates an access token in memory, introspects its username, and
 queries that account. It does not overwrite the live login or saved snapshots. An account with
-only an MCP token can appear in `list`, but cannot supply OAuth quota or be selected by `ensure`.
+only an MCP token reports quota and runs through `kaggle_as.py`, but cannot be selected by `ensure`.
 Failures are reported by account; a missing response means unknown quota, not zero usage.
 
 `health` asks only whether each snapshot's refresh token still mints an access token and whether

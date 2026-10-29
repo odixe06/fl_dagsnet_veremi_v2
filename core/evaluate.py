@@ -23,9 +23,10 @@ def global_cm(lay, p_row, b_row, test, cfg, batch=16384):
 
 
 @torch.no_grad()
-def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None):
+def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None, head=None):
     """Rows `flat[i]` = model of client clients[i]; each scored on its own test rows -> (len(clients), 16, 16).
-    protos = (C (16, d), present (16,) bool): predict argmin_j ‖h(x) − C_j‖ over present classes (FedProto Eq. 4)."""
+    protos = (C (16, d), present (16,) bool): predict argmin_j ‖h(x) − C_j‖ over present classes (FedProto Eq. 4).
+    head(P, h) -> logits replaces DAGSNet's classifier (a method's own head on the hidden layer, e.g. V2X-HtFL's ETF)."""
     dev = test.X.device
     off = test.off
     n = (off[clients + 1] - off[clients])
@@ -45,6 +46,8 @@ def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None):
             rows = start[:, None] + torch.where(valid, j, 0)
             with torch.autocast("cuda", dtype=torch.float16, enabled=dev.type == "cuda"):
                 logits, h, _ = grouped.EVAL(P, B, test.X[rows], cfg, train=False, hidden=True)
+            if head is not None:
+                logits = head(P, h)
             if protos is not None:
                 dist = torch.cdist(h.float(), protos[0][None].expand(h.shape[0], -1, -1))
                 logits = -dist.masked_fill(~protos[1], float("inf"))
@@ -56,13 +59,14 @@ def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None):
 
 
 @torch.no_grad()
-def class_sums(lay, flat, bufs, data, cfg, clients, max_rows=1 << 15):
+def class_sums(lay, flat, bufs, data, cfg, clients, max_rows=1 << 15, feat=None, d=None):
     """Eval-mode hidden-layer sums and counts per (client, class) over `data` rows of each client:
-    -> (len(clients), 16, d) sums, (len(clients), 16) counts. Prototype methods' "collect prototypes" pass."""
+    -> (len(clients), 16, d) sums, (len(clients), 16) counts. Prototype methods' "collect prototypes" pass.
+    feat(P, h) -> (G, b, d) maps the hidden layer first (a method's own embedding, e.g. V2X-HtFL's projection)."""
     dev = data.X.device
     off = data.off
     n = off[clients + 1] - off[clients]
-    d = cfg["head_hidden"]
+    d = d or cfg["head_hidden"]
     S = torch.zeros(len(clients), N_CLS, d, device=dev)
     Cn = torch.zeros(len(clients), N_CLS, device=dev)
     order = torch.argsort(n, descending=True)
@@ -79,6 +83,8 @@ def class_sums(lay, flat, bufs, data, cfg, clients, max_rows=1 << 15):
             rows = start[:, None] + torch.where(valid, j, 0)
             with torch.autocast("cuda", dtype=torch.float16, enabled=dev.type == "cuda"):
                 _, h, _ = grouped.EVAL(P, B, data.X[rows], cfg, train=False, hidden=True)
+                if feat is not None:
+                    h = feat(P, h)
             y = data.Y[rows].long()
             gi = torch.arange(g, device=dev)[:, None].expand_as(y)
             w = valid.float()
