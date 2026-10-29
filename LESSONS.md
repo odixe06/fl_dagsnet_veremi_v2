@@ -31,3 +31,8 @@
 - Grouped (G model/bước, bmm channels-last) compile: ~45k slot/s full width ≈ 77 % model đơn; eager chậm hơn ~2,5×.
   Lần compile đầu ~2 phút. Hiệu suất thực = slot thật / slot (padding): 0,85 ở batch 64 / 8.192 dòng mỗi bước grouped trên phân bố
   client v4 (nhóm theo kích thước); phần mất chủ yếu do client lớn (95k dòng = 1.487 bước tuần tự).
+- **Stride của tensor đầu vào cũng là guard của `torch.compile` tĩnh** (29/10): `mask = valid[:, s*b:(s+1)*b]` có stride phụ thuộc số bước
+  của nhóm ⇒ mỗi nhóm một lần recompile, quá 8 lần dynamo **im lặng chạy eager** (probe Kaggle FedAvg W 1: r1 1.243 s thay vì vài phút).
+  Sửa: `.contiguous()` mỗi bước, `recompile_limit = 64`; kiểm bằng `TORCH_LOGS=recompiles` (còn 2 lần hợp lệ: dropout 0 của gate, no_grad eval).
+- Nạp parquet trên Kaggle: mỗi rank đọc cả 410 file từ `/kaggle/input` mất 10–30 phút ⇒ một lần `data.build_npy` trong notebook rồi
+  `V4_NPY` memmap theo rank.

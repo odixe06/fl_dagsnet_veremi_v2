@@ -106,7 +106,9 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
     one = models == 1
     for s in range(steps):
         sl = slice(s * b, (s + 1) * b)
-        rows, mask = pos[:, sl], valid[:, sl]
+        # contiguous: a slice of the (G, steps*b) schedule has a group-dependent stride, and a stride change is a
+        # recompile of the static-shape graph (8 recompiles -> silent eager fallback, Kaggle probe 29/10)
+        rows, mask = pos[:, sl].contiguous(), valid[:, sl].contiguous()
         active = mask.any(1)
         ctx.P, ctx.B, ctx.flat = (leaves[0], bviews[0], flat_p) if one else (leaves, bviews, flat_p)
         ctx.x, ctx.y, ctx.mask, ctx.rows, ctx.step = X[rows], Y[rows].long(), mask, rows, s

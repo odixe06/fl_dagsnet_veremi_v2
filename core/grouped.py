@@ -154,6 +154,7 @@ EVAL = forward
 def compile_all():
     global TRAIN, EVAL
     from core import optim
+    torch._dynamo.config.recompile_limit = 64                          # methods legitimately use several shapes
     TRAIN = torch.compile(forward, dynamic=False)
     EVAL = torch.compile(forward, dynamic=True)
     optim.compile_all()
