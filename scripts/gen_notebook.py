@@ -58,6 +58,7 @@ from core import data as D
 D.build_npy(D.find_root(), "/kaggle/temp/v4npy")    # one reader; every rank then memmaps (V4_NPY)
 print(f"npy cache built in {time.monotonic() - t:.0f}s")"""
     yield "code", resume + f"""os.environ.update(TORCHINDUCTOR_COMPILE_THREADS="2", PYTHONUNBUFFERED="1", OMP_NUM_THREADS="2",
+                  PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True",   # GPU near-full: avoid allocator thrash (MobiHet 30/10)
                   V4_NPY="/kaggle/temp/v4npy")
 budget = {a.max_hours} - (time.monotonic() - T0) / 3600
 cmd = "cd /kaggle/temp/src && torchrun --standalone --nproc_per_node=2 {args}".replace("BUDGET", f"{{budget - 0.4:.2f}}")
