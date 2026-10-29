@@ -59,6 +59,16 @@ starting it; it does not stop an existing worker. Keep the notebook budget/stall
 conda run -n nckh kaggle kernels status <owner>/<kernel-slug>
 ```
 
+**Re-measured 2026-10-30 (account `dinhan25`, direct JSON-RPC to `https://www.kaggle.com/mcp`, 76 tools):**
+`cancel_notebook_session` with the kernel metadata id again returned `Permission 'kernelSessions.cancel' was denied`;
+`get_notebook_info` / `get_notebook_session_status` still expose no session id. Closed — go manual.
+(Transport note: `curl` with the bearer works; Python `requests` with the same header got 404 — use curl for probes.)
+
+**What does help:** `kaggle kernels push -t SECONDS` (CLI 2.2.5) sets a hard run-time limit at launch, so a session
+cannot outlive its budget even if the in-notebook `--max-hours` guard fails. Live logs of a running session (useful to
+prove liveness/stop): `curl -N -H @<auth-header-file> https://www.kaggle.com/api/v1/kernels/logs/stream/<owner>/<slug>`
+(SSE `data: {"stream_name","time","data"}`).
+
 ## Why a replacement push is not the answer either
 
 The idea: push a one-cell CPU notebook over the same `<owner>/<slug>` so the new version
