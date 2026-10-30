@@ -57,3 +57,7 @@ Bài học ở đây là quy tắc rút ra khi chạy thí nghiệm và hạ t�
   Commit trước 30/10 ~02:00 còn trailer này — không sửa lịch sử (force-push đã bị từ chối).
 - 30/10: `gen_notebook.py` chép `--set` thô vào literal Python `"..."` rồi shell, `run_fl.py` đọc bằng `json.loads` ⇒ giá trị chuỗi
   cần `--set "k='\\\"v\\\"'"`. Luôn `ast.parse` mọi cell + `shlex.split` lệnh trước khi push (bản đầu fl2-canperfl lỗi cú pháp).
+- 30/10: method giữ tensor per-client trên host (APFed θ pinned ~4 GB/rank) không được tạo bản tạm cùng cỡ trong `state()`
+  (`1 − θ` fp32): 2 rank × (θ + bank copy + tạm) vượt 30 GB RAM Kaggle ⇒ SIGKILL ở lần ghi state cuối, sau khi train xong. Tính theo khối.
+- 30/10: mạng tới `api.kaggle.com` chập chờn (ConnectTimeout lúc listing) ⇒ status trả rỗng / pull fail ngẫu nhiên: thử lại, đừng đọc
+  status rỗng là lỗi kernel. Pull nhiều kernel song song (mỗi kernel một tiến trình, `-j 16`) nhanh hơn chuỗi tuần tự.

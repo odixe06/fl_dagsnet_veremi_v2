@@ -23,6 +23,17 @@
 Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <acct> -- kaggle kernels status <acct>/<slug>`; log live
 `... kernels logs <acct>/<slug> --follow` (dòng `^ep..`/`^r..`); W&B API (xem lịch sử phiên 29/10).
 
+## Trạng thái 30/10 ~11:00 (giờ VN) — đã pull + audit
+
+Kết quả + audit: [results](../research/results.md). Pull: `runs/pulls/<slug>/` (git-ignored, bỏ `state*.pt`).
+
+| việc | trạng thái |
+|---|---|
+| 14 run FL + centralized + CANPerFL | xong, audit PASS (lưu ý trong results) |
+| `fl2-apfed-r2` | Kaggle ERROR **sau** r50 (rank 0 SIGKILL khi ghi state, RAM host); metric đủ; sửa `bda3c07`; không chạy lại |
+| `fl2-tinyproto-r3` | anhtruong1909, push 30/10 ~10:50, SHA `55d13cc` (view prototype sửa theo Eq. 12) — thay r2 |
+| `fl2-nilm-r2` | accanniez, đang chạy; budget 11,5 h ⇒ dừng ~r38 ⇒ push session 2 `--resume-kernel accanniez/fl2-nilm-r2 --run fl2-nilm-r2` |
+
 ## Trạng thái 30/10 ~06:50 (giờ VN; W&B live)
 
 Kernel cũ (không lưu model mỗi round) đã CANCEL hết; `dinhan25/fl2-v2x-htfl` cũ owner không dừng được ⇒ bỏ qua (tự hết 12 h).

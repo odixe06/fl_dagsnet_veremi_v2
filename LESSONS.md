@@ -36,3 +36,6 @@
   Sửa: `.contiguous()` mỗi bước, `recompile_limit = 64`; kiểm bằng `TORCH_LOGS=recompiles` (còn 2 lần hợp lệ: dropout 0 của gate, no_grad eval).
 - Nạp parquet trên Kaggle: mỗi rank đọc cả 410 file từ `/kaggle/input` mất 10–30 phút ⇒ một lần `data.build_npy` trong notebook rồi
   `V4_NPY` memmap theo rank.
+- 30/10: luật suy luận prototype phải theo đúng bài từng phương pháp: FedProto/FedTGP dùng prototype toàn cục, **TinyProto Eq. 12 dùng
+  prototype cục bộ dense c̄^L_ij**. Target thưa × μ của TinyProto chỉ là đích regularizer (0 ngoài mask) ⇒ dùng làm prototype suy luận
+  cho F1 0,24 vs head 0,79. Audit: view prototype thấp xa view head là dấu hiệu sai luật suy luận.
