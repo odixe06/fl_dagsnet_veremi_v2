@@ -25,7 +25,8 @@ def global_cm(lay, p_row, b_row, test, cfg, batch=16384):
 @torch.no_grad()
 def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None, head=None):
     """Rows `flat[i]` = model of client clients[i]; each scored on its own test rows -> (len(clients), 16, 16).
-    protos = (C (16, d), present (16,) bool): predict argmin_j ‖h(x) − C_j‖ over present classes (FedProto Eq. 4).
+    protos = (C (16, d), present (16,) bool): predict argmin_j ‖h(x) − C_j‖ over present classes (FedProto Eq. 4);
+    per-client prototypes C (len(clients), 16, d), present (len(clients), 16) (TinyProto Eq. 12, local c̄^L_ij).
     head(P, h) -> logits replaces DAGSNet's classifier (a method's own head on the hidden layer, e.g. V2X-HtFL's ETF)."""
     dev = test.X.device
     off = test.off
@@ -49,8 +50,12 @@ def own_cm(lay, flat, bufs, test, cfg, clients, max_rows=1 << 17, protos=None, h
             if head is not None:
                 logits = head(P, h)
             if protos is not None:
-                dist = torch.cdist(h.float(), protos[0][None].expand(h.shape[0], -1, -1))
-                logits = -dist.masked_fill(~protos[1], float("inf"))
+                if protos[0].dim() == 3:
+                    dist = torch.cdist(h.float(), protos[0][idx].float())
+                    logits = -dist.masked_fill(~protos[1][idx][:, None], float("inf"))
+                else:
+                    dist = torch.cdist(h.float(), protos[0][None].expand(h.shape[0], -1, -1))
+                    logits = -dist.masked_fill(~protos[1], float("inf"))
             code = test.Y[rows].long() * N_CLS + logits.argmax(-1)
             code = torch.arange(g, device=dev)[:, None] * N_CLS * N_CLS + code
             out[idx] += torch.bincount(code[valid], minlength=g * N_CLS * N_CLS).view(g, -1)

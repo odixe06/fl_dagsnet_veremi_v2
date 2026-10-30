@@ -6,7 +6,8 @@ s masked coordinates of a prototype travel (compressed prototype ĉ, Def. 2). AP
 server averages over the clients holding class j, ĉ^G_j = mean_i n_ij·ĉ^L_ij (Eq. 10), without ever seeing n_ij.
 Client loss (Eq. 5, 11): CE + λ·ρ(f(x), μ·c̃^G_y), c̃^G = ĉ^G scattered back into d dims (zeros off the mask), ρ = MSE per
 sample as FedProto's code, λ = 1 (paper, following FedProto). Local prototypes from an eval-mode pass after training
-(the authors' code base, PFLlib). Inference: nearest μ·c̃^G ("client_proto") and the classifier head ("client").
+(the authors' code base, PFLlib). Inference: nearest dense local prototype c̄^L_ij of the client over the classes it holds
+("client_proto", Eq. 12; before 30/10 this used μ·c̃^G, which is zero off the mask) and the classifier head ("client").
 Choices the paper leaves open here: s = ceil(d / 10) (paper default s = 50 of d = 500, 90 % compression); masks = blocks of
 a seeded permutation of the d dims, cyclically (16·s > d forces overlaps; blocks spread them evenly); μ = 1 / n̄ with n̄
 the mean n_ij over (client, class) pairs, computed once at start (the paper's μ-selection rule is in its appendix, not
@@ -64,6 +65,8 @@ class Method:
             self.bank_p[idx], self.bank_b[idx] = flat, bufs
             loss[idx] = st["loss"]
         S, Cn = evaluate.class_sums(env.lay, self.bank_p, self.bank_b, env.train, cfg, torch.arange(env.K, device=env.dev))
+        self.local = (S / Cn.clamp_min(1)[..., None]).half()              # dense c̄^L_ij, inference only (Eq. 12)
+        self.has = Cn > 0
         # client upload: n_ij·ĉ^L_ij = masked coordinates of the class sum (n_ij · mean); server: mean over holders
         scaled = (S * self.mask[None]).sum(0)                          # Σ_i n_ij c̄_ij on the mask (zeros off it)
         holders = (Cn > 0).sum(0).float()
@@ -77,12 +80,13 @@ class Method:
         out = {"client": env.eval_clients(self.bank_p, self.bank_b)}
         cms = evaluate.own_cm(env.lay, self.bank_p, self.bank_b, env.test, env.cfg, torch.arange(env.K, device=env.dev),
                               max_rows=env.hp.get("eval_rows", 1 << 15),
-                              protos=(self.target, torch.ones(16, dtype=torch.bool, device=env.dev)))
+                              protos=(self.local, self.has))
         out["client_proto"] = env.gather_cms(cms)
         return out
 
     def state(self):
-        return {"bank_p": self.bank_p.cpu(), "bank_b": self.bank_b.cpu(), "target": self.target.cpu()}
+        return {k: getattr(self, k).cpu() for k in ("bank_p", "bank_b", "target", "local", "has")}
 
     def load_state(self, s):
-        self.bank_p, self.bank_b, self.target = (s[k].to(self.env.dev) for k in ("bank_p", "bank_b", "target"))
+        self.bank_p, self.bank_b, self.target, self.local, self.has = (
+            s[k].to(self.env.dev) for k in ("bank_p", "bank_b", "target", "local", "has"))
