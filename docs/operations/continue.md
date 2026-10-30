@@ -23,28 +23,28 @@
 Kiểm: `python .claude/skills/kaggle-training-notebook/scripts/kaggle_as.py <acct> -- kaggle kernels status <acct>/<slug>`; log live
 `... kernels logs <acct>/<slug> --follow` (dòng `^ep..`/`^r..`); W&B API (xem lịch sử phiên 29/10).
 
-## Trạng thái 30/10 ~04:40 (giờ VN; UTC 21:36 29/10)
+## Trạng thái 30/10 ~06:50 (giờ VN; W&B live)
 
 Kernel cũ (không lưu model mỗi round) đã CANCEL hết; `dinhan25/fl2-v2x-htfl` cũ owner không dừng được ⇒ bỏ qua (tự hết 12 h).
 Quota GPU refresh 31/10 00:00 UTC.
 
 | kernel | trạng thái | F1-macro (pooled) | s/round train |
 |---|---|---|---|
+| fl2-central-w1 | **xong ep50** | 0,9593 (trần centralized) | |
 | fl2-fedavg | **xong r50** | global 0,9042 (p10 0,754) | 224 |
-| fl2-fedprox | **xong r50** | global 0,8998 | |
-| fl2-scaffold | **xong r50** | global 0,8911 | |
-| fl2-fedproto | **xong r50** | client 0,8726 / proto 0,8698 | 230 |
-| fl2-central-w1 | **xong ep50** | 0,9593 | |
-| fl2-lwfednids-r2 | **xong r50** | global 0,8904 | 72 |
-| fl2-afpha-r2 | r31 | global 0,8888 | |
-| fl2-fd-ids-r2 | r26 | global 0,8850 | |
-| fl2-tinyproto-r2 | r25 | client 0,7809 / proto 0,2265 | 303 |
-| fl2-perfedskd-r2 | r23 | client 0,8661 | 354 |
-| fl2-fedtgp-r2 | r22 | client 0,8712 / proto 0,8652 | 319 |
-| fl2-v2x-htfl-r2 | r22 | client 0,8629 / proto 0,8519 | 332 |
-| fl2-apfed-r2 | r15 | client 0,8968 / global 0,8836 | 493 |
-| fl2-pfedes-r2 | r14 | client 0,8410 | 483 |
-| fl2-nilm-r2 | r6 | client 0,8518 / proxy 0,8531 | 980 ⇒ ~38 round/session, **cần session 2** (`--resume-kernel accanniez/fl2-nilm-r2`, cùng `--run`) |
+| fl2-fedprox | **xong r50** | global 0,8998 (p10 0,752) | |
+| fl2-fd-ids-r2 | **xong r50** | global 0,8992 (p10 0,755) | |
+| fl2-afpha-r2 | **xong r50** | global 0,8990 (p10 0,752) | |
+| fl2-scaffold | **xong r50** | global 0,8911 (p10 0,774) | |
+| fl2-lwfednids-r2 | **xong r50** | global 0,8904 (p10 0,729) | 72 |
+| fl2-fedproto | **xong r50** | client 0,8726 / proto 0,8698 (p10 0,575) | 230 |
+| fl2-tinyproto-r2 | r48 | client 0,7809 / proto 0,2265 | 303 |
+| fl2-fedtgp-r2 | r45 | client ~0,871 / proto ~0,865 | 319 |
+| fl2-perfedskd-r2 | r44 | client ~0,866 | 354 |
+| fl2-v2x-htfl-r2 | r44 | client ~0,863 / proto ~0,852 | 332 |
+| fl2-apfed-r2 | r30 | client ~0,897 | 493 |
+| fl2-pfedes-r2 | r30 | client ~0,841 | 483 |
+| fl2-nilm-r2 | r14 | client ~0,852 / proxy ~0,853 | 980 ⇒ ~38 round/session, **cần session 2** (`--resume-kernel accanniez/fl2-nilm-r2`, cùng `--run`) |
 | fl2-canperfl | push 30/10 04:40, trietbackup, SHA e8ad753, 10 epoch từ state r50 fl2-fedavg, `-t 10800` | | |
 
 Quote `--set` chuỗi: xem [lessons](lessons.md) 30/10.
