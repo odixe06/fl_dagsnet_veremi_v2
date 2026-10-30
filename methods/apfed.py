@@ -97,9 +97,13 @@ class Method(fedavg.Method):
 
     def state(self):
         # 1 − θ in fp16: θ stays near 1 for most coordinates, where fp16 of θ itself would round small moves away; halves
-        # the checkpoint (the resumed θ differs by < 1e-3 relative to 1 − θ)
+        # the checkpoint (the resumed θ differs by < 1e-3 relative to 1 − θ). Row blocks: a full fp32 1 − θ temporary
+        # (~4 GB/rank at W = 1) on top of the pinned θ and the bank copy exceeded Kaggle host RAM at the r50 save (30/10).
+        omt = torch.empty(self.theta.shape, dtype=torch.float16)
+        for i in range(0, len(self.theta), 256):
+            omt[i:i + 256] = 1 - self.theta[i:i + 256]
         return {**super().state(), "bank_p": self.bank_p.cpu(), "bank_b": self.bank_b.cpu(),
-                "one_minus_theta": (1 - self.theta).half(), "fused": self.fused}
+                "one_minus_theta": omt, "fused": self.fused}
 
     def load_state(self, s):
         super().load_state(s)
