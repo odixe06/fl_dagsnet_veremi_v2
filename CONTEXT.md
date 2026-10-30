@@ -19,19 +19,19 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 - Task < 1 h chạy local; task dài chạy Kaggle (16 account; CLI mới đăng nhập 6, owner bổ sung sau). Env conda `nckh`.
 - Tốc độ train phải tối ưu ⇒ `core/grouped.py`: nhiều client một bước (bmm), dữ liệu thường trú GPU.
 
-## Trạng thái — 30/10 00:05
+## Trạng thái — 30/10 11:15 (giờ VN)
 
-- 16/19 phương pháp code + test (toy CPU, smoke GPU compile 100 xe). Thiếu APFed, V2X-HtFL, CANPerFL (chờ PDF của owner).
-- Quyết định owner 29/10 bổ sung: gộp model theo n_k mọi phương pháp; MobiHet gộp n_k; AFPHA cụm scenario×run + μ thích nghi;
-  TinyProto-FP; headline FedProto/FedTGP/TinyProto = luật prototype.
-- **W = 1 khóa (owner 29/10)**: DAGSNet full 395.408 tham số, bỏ qua cổng W = 0,75 (lúc chốt: w1 ep13 0,964 · w0,5 ep15 0,947 ·
-  w0,375 0,942 · w0,25 0,930). Run FL 50 round đang chạy — xem [continue](docs/operations/continue.md).
+- 19/19 phương pháp code + test. **W = 1 khóa** (DAGSNet 395.408 tham số).
+- 14 run FL 50 round + centralized + CANPerFL **xong, audit PASS** ⇒ [results](docs/research/results.md) (centralized 0,9593;
+  FL tốt nhất APFed client 0,9119; FedAvg 0,9042). Còn chạy: NILM-FL (cần session 2), TinyProto r3 (sửa luật prototype).
+- Chi phí FLOPs/băng thông mọi phương pháp: [cost](docs/research/cost.md). MobiHet: repo riêng (bên dưới).
 
 ## Cần biết → mở
 
 | câu hỏi | tài liệu |
 |---|---|
 | Đang làm gì, bước tiếp, việc tay? | [continue](docs/operations/continue.md) |
+| Kết quả 50 round, audit, lưu ý từng run | [results](docs/research/results.md) |
 | Cấu hình chung, cách chấm, cổng độ rộng | [protocol](docs/research/protocol.md) |
 | Danh sách phương pháp, trạng thái | [methods](docs/research/methods.md) |
 | Dataset, cột, số liệu, caveat | [knowledge/dataset](knowledge/dataset.md) |
