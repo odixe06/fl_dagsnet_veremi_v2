@@ -11,7 +11,7 @@ from core.dagsnet import width
 from core.data import Split
 from core.flat import Layout
 
-METHODS = ["fedavg", "fedprox", "scaffold", "mobihet", "pfedes", "fedproto", "fedtgp", "tinyproto", "nilm", "fd_ids", "afpha", "perfedskd", "lwfednids", "apfed", "v2x_htfl"]
+METHODS = ["fedavg", "fedprox", "scaffold", "mobihet", "mobihet_rel", "pfedes", "fedproto", "fedtgp", "tinyproto", "nilm", "fd_ids", "afpha", "perfedskd", "lwfednids", "apfed", "v2x_htfl"]
 
 
 class ToyEnv:
@@ -51,8 +51,8 @@ class ToyEnv:
     def eval_global(self, p, b):
         return evaluate.global_cm(self.lay, p, b, self.test, self.cfg)
 
-    def eval_clients(self, bp, bb):
-        return evaluate.own_cm(self.lay, bp, bb, self.test, self.cfg, torch.arange(self.K))
+    def eval_clients(self, bp, bb, **kwargs):
+        return evaluate.own_cm(self.lay, bp, bb, self.test, self.cfg, torch.arange(self.K), **kwargs)
 
 
 @pytest.mark.parametrize("name", METHODS)

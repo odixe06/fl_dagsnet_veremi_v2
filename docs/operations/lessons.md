@@ -18,6 +18,18 @@ Bài học ở đây là quy tắc rút ra khi chạy thí nghiệm và hạ t�
 
 ## Kaggle, notebook và đường pipeline
 
+- 31/10 RelKD val v1: `state_rank1.pt` cố ý chỉ giữ round/method_state/RNG; metadata chung `method/cfg/hp/gen` chỉ ở
+  rank0 `state.pt`. Smoke checker không được assert `state["method"]` trên mọi rank. V1 đã train+resume smoke r1–2 khỏe rồi ERROR
+  ở checker này; sửa assertion rank-aware, không đổi model/gate/data và repush cùng slug.
+
+- 31/10 P0 eval-only: cùng checkpoint nhưng eager và compiled eval lệch vài dự đoán (accuracy ~1,2e-6, macro-F1 ~4,6e-6),
+  làm percentile p10 client lệch ~5e-4. Assertion tái lập không dùng tolerance 1e-12 qua backend; khóa tolerance theo metric.
+  Kernel ERROR sau khi đã ghi CM/JSON vẫn có thể audit artifact hợp lệ; không rerun chỉ để đổi nhãn terminal.
+
+- 30/10: owner tắt W&B cho MobiHet mới. `gen_notebook.py --no-wandb` bỏ login cell và cờ `--wandb`;
+  không cần nhúng key. CLI2.2.4 stream log có hậu tố `/version` trả404, cùng slug không version đọc được live log;
+  vẫn giữ version cụ thể khi status/pull. Xác nhận version đang chạy trước khi diễn giải stream latest.
+
 - **20/10 final startup crash:** test `--smoke --final` vẫn đọc pilot fixture, không chứng minh đường production final-only.
   Gaussian legacy còn hash cứng pilot manifest ⇒ r24 zc/zi crash trước round1. Test bắt buộc: không tồn tại pilot,
   Gaussian đọc final manifest; đối chiếu context pilot với legacy. Notebook phải lan truyền exit code subprocess,

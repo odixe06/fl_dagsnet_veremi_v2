@@ -10,8 +10,8 @@ PROXY that is the only thing exchanged, as a 3-bit stochastic-rounded delta + LZ
     proxy:    CE(z_r, y) + min(w, 1) · KL(z_p ‖ z_r)                       kdpx: proxy <- private weight capped at 1
     w = 1 / (CE_private + CE_proxy)   (detached; DML adaptive weight)
 
-KD on real rows, no KD in round 1 (no snapshot yet). Server: exact proxy kept, θ ← θ + mean_k Q3(Δ_k) (unweighted, as in
-the original); downlink Q3(exact − replica), nearest rounding; BN buffers fp16, averaged. m4b (zeroing simulator noise and
+KD on real rows, no KD in round 1 (no snapshot yet). Server: exact proxy kept, sample-weighted Q3 deltas by default
+(original used uniform weights); downlink Q3(exact − replica), nearest rounding; BN buffers fp16, averaged. m4b (zeroing simulator noise and
 absolute receiver/sender positions) is the identity on v4: the dataset has none of those columns.
 
 One-time bootstrap (gpool + la): each client sends per-class counts, Σx, Σxxᵀ (77-d); the server returns the pooled class
@@ -31,6 +31,23 @@ LZMA = [dict(id=lzma.FILTER_LZMA2, preset=9 | lzma.PRESET_EXTREME)]
 BITS = 3
 KD_CAP = 1.0
 BYTES_SAMPLE = 64                                                   # clients per rank whose packets are LZMA-coded each round
+
+
+def class_reliability_gate(teacher_logits, student_logits, y, mask, margin=0.0):
+    """Per client/batch/class: teacher may distil only when its mean true-label NLL beats the private model.
+
+    Returns class gates (G, 16) and row gates (G, b). Classes absent from a client's batch stay off.
+    Inputs are detached by the caller; this gate selects KD signal and is not itself optimized.
+    """
+    G, b, C = teacher_logits.shape
+    tnll = F.cross_entropy(teacher_logits.float().reshape(-1, C), y.reshape(-1), reduction="none").view(G, b)
+    snll = F.cross_entropy(student_logits.float().reshape(-1, C), y.reshape(-1), reduction="none").view(G, b)
+    onehot = F.one_hot(y, C).float() * mask[..., None]
+    count = onehot.sum(1)
+    teacher_sum = (onehot * tnll[..., None]).sum(1)
+    student_sum = (onehot * snll[..., None]).sum(1)
+    gate = (count > 0) & (teacher_sum + margin * count < student_sum)
+    return gate, gate.gather(1, y)
 
 
 def quantize(delta, gen=None):
@@ -60,6 +77,8 @@ def packet_bytes(codes, scales, bufs_row):
 class Method:
     name = "mobihet"
     per_client = True
+    reliability_gate = False
+    reliability_margin = 0.0
 
     def __init__(self, env):
         self.env = env
@@ -130,8 +149,14 @@ class Method:
                 zt, _ = grouped.TRAIN(self._teacher_p, self._teacher_b, xp, cfg, train=False)
                 lt = F.log_softmax(zt.float(), -1)
             kl = (lt.exp() * (lt - lsp)).sum(-1)                         # KL(T ‖ private) per row
-            kd = local.masked_mean(kl[:, :b], ctx.mask)
-            gkd = kl[:, b:].mean(1)
+            if self.reliability_gate:
+                gate, row_gate = class_reliability_gate(zt[:, :b].detach(), zp[:, :b].detach(), y, ctx.mask,
+                                                         self.reliability_margin)
+                kd = local.masked_mean(kl[:, :b] * row_gate, ctx.mask)
+                gkd = (kl[:, b:] * gate[:, self.labels]).mean(1)
+            else:
+                kd = local.masked_mean(kl[:, :b], ctx.mask)
+                gkd = kl[:, b:].mean(1)
             loss = loss + raw * (kd + gkd)
         else:
             aux_ce = F.cross_entropy(zp[:, b:].reshape(-1, 16), self.labels.repeat(G), reduction="none").view(G, a).mean(1)
@@ -145,6 +170,7 @@ class Method:
         bsum = torch.zeros_like(self.g_b, dtype=torch.float64)
         loss = torch.zeros(env.K, device=env.dev)
         nbytes, sampled = 0, 0
+        counts = torch.zeros(3, device=env.dev)  # applied, skipped, clients with no applied steps
         for gi, idx in enumerate(env.groups_idx()):
             G = len(idx)
             flat = torch.cat([self.priv_p[idx], self.g_p.repeat(G, 1)], 1)
@@ -156,6 +182,9 @@ class Method:
                 self._teacher_b = lay.bufs(self.g_b[None].repeat(Gf, 1))
             st = local.local_epoch(lay, flat, bufs, env.train, idx, env.cfg, env.hp, lr, env.gen, loss_fn=self._loss,
                                    models=2)
+            counts += torch.stack([st["applied"].sum(), st["skipped"].sum(), (st["applied"] == 0).sum()])
+            if not torch.isfinite(flat).all() or not torch.isfinite(bufs).all():
+                raise RuntimeError(f"non-finite MobiHet update, rank={env.rank}, group={gi}")
             self.priv_p[idx], self.priv_b[idx] = flat[:, :P], bufs[:, :lay.B]
             # uplink: Q3(proxy − replica) per tensor row, stochastic rounding
             delta = lay.params(flat[:, P:] - self.g_p[None])
@@ -188,20 +217,30 @@ class Method:
         down_bytes = packet_bytes(codes, scales, self.g_b)
         up = env.allreduce(torch.tensor([float(nbytes), float(sampled)], device=env.dev))
         self.version = r
+        counts = env.allreduce(counts)
+        if counts[2] > 0 or counts[1] > counts[0]:
+            raise RuntimeError(f"MobiHet invalid training: applied/skipped/idle={counts.tolist()}")
         return {"train_loss": float(env.allreduce((loss * env.n).sum()) / env.allreduce(env.n.sum().clone())),
+                "applied_steps": float(counts[0]), "skipped_steps": float(counts[1]),
+                "skipped_frac": float(counts[1] / counts[:2].sum().clamp_min(1)),
                 "bytes_up": float(up[0] / up[1]), "bytes_down": down_bytes,
                 "q_residual_rel": float((self.exact - self.g_p).norm() / self.exact.norm())}
 
     def evaluate(self):
-        return {"private": self.env.eval_clients(self.priv_p, self.priv_b), "proxy": self.env.eval_global(self.g_p, self.g_b)}
+        return {"private": self.env.eval_clients(self.priv_p, self.priv_b),
+                "private_local": self.env.eval_clients(self.priv_p, self.priv_b, logit_bias=self.la_shift),
+                "proxy": self.env.eval_global(self.g_p, self.g_b)}
 
     def state(self):
-        return {k: getattr(self, k).cpu() for k in ("priv_p", "priv_b", "g_p", "g_b", "exact")} | {"version": self.version}
+        return {k: getattr(self, k).cpu() for k in ("priv_p", "priv_b", "g_p", "g_b", "exact")} | {
+            "version": self.version, "gen_q": self.gen_q.get_state(), "gen_g": self.gen_g.get_state()}
 
     def load_state(self, s):
         for k in ("priv_p", "priv_b", "g_p", "g_b", "exact"):
             setattr(self, k, s[k].to(self.env.dev))
         self.version = s["version"]
+        self.gen_q.set_state(s["gen_q"])
+        self.gen_g.set_state(s["gen_g"])
 
 
 def _slice(lay, key):

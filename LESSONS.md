@@ -12,6 +12,20 @@
 
 ## Dữ liệu
 
+- 31/10 MobiHet P0 r25: thêm `log π_k − log π_g` lúc own-client inference tăng F1 timeDelay 0,0559 → 0,0731 nhưng
+  giảm pooled macro-F1 0,8832 → 0,8812, client mean 0,8249 → 0,8117 và p10 0,6772 → 0,6453. Giữ logits raw;
+  prior correction lúc train không suy ra rằng phải cộng lại lúc inference.
+- 31/10 P1a train→val: trên đúng 77 feature, binary HGB/MLP tách benign–timeDelay đạt F1 lớp13 0,541/0,542;
+  exact collision mẫu 200k/lớp bằng0. Representation có tín hiệu, nên không đổ lỗi chính cho dataset hoặc mở v5 trước;
+  lỗi còn lại là chuyển tín hiệu binary vào multiclass/private qua objective/KD. Đây là oracle binary, không phải điểm MobiHet dự kiến.
+
+- 30/10 MobiHet v4: resume cần RNG riêng của Gaussian (`gen_g`), stochastic quantization (`gen_q`),
+  lịch mẫu (`env.gen`) và torch CPU/CUDA theo rank. Chỉ lưu weights/version không tái hiện round kế tiếp.
+  Test CPU train r1 → serialize → r2 so với restore → r2 đã PASS bit-exact trên Kaggle;
+  chưa chứng minh bit-exact CUDA/compile. Smoke hai GPU kiểm riêng đường restart.
+- 30/10: tính loss bằng `loss * ok` vẫn cho NaN khi loss NaN và ok=0; dùng `where`, chia số bước thực sự áp dụng.
+  Thay đổi thống kê loss, không thay gradient/update. Theo dõi applied/skipped để tránh model đứng yên nhưng loss giả thấp.
+
 - `pyarrow.dataset(<v4>/train)` lỗi "Unable to merge: Field scenario has incompatible types: large_string vs string" (cột trong file là
   `large_string`, partition hive suy `string`) ⇒ đọc từng file bằng `pq.read_table` (`core/data.py`).
 - 77 đầu vào = 11 × 7 ⇒ DAGSNet giữ lưới 11 vị trí (`view(B, 11, 7).transpose(1, 2)`).

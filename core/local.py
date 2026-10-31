@@ -135,11 +135,11 @@ def local_epoch(lay, flat, bufs, data, clients, cfg, hp, lr, gen, loss_fn=None, 
         if Bn:
             nb = lay.flat_bufs(newB) if one else torch.cat([lay.flat_bufs(d) for d in newB], dim=1)
             bufs_p.copy_(torch.where(ok[:, None], nb, bufs_p))
-        loss_sum += loss.detach() * ok
+        loss_sum += torch.where(ok, loss.detach(), torch.zeros_like(loss))
         skipped += (active & ~ok).float()
         applied += ok.float()
     flat.copy_(flat_p[:G]); bufs.copy_(bufs_p[:G])
-    return {"loss": loss_sum[:G] / torch.ceil(n.float() / b), "skipped": skipped[:G], "applied": applied[:G],
+    return {"loss": loss_sum[:G] / applied[:G].clamp_min(1), "skipped": skipped[:G], "applied": applied[:G],
             "steps": steps}
 
 

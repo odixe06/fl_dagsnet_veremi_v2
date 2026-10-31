@@ -38,8 +38,11 @@ class Env:
         self.all_ids = all_ids
         self.n_all = sizes[all_ids]                                      # train rows, global order of all_ids
         mine = np.sort(order[self.rank::self.world])
-        self.train = D.load(root, "train", mine.tolist(), cache).to(self.dev)
-        self.test = D.load(root, "test", mine.tolist(), cache).to(self.dev)
+        train_folds = [hp["train_fold"]] if hp.get("train_fold") else None
+        eval_fold = hp.get("eval_fold")
+        self.train = D.load(root, "train", mine.tolist(), cache, folds=train_folds).to(self.dev)
+        self.test = D.load(root, "train" if eval_fold else "test", mine.tolist(), cache,
+                           folds=[eval_fold] if eval_fold else None).to(self.dev)
         assert (self.train.ids == self.test.ids).all()
         self.ids = self.train.ids.cpu().numpy()                          # global client_id of local index
         self.K = len(self.ids)
@@ -84,8 +87,8 @@ class Env:
     def eval_global(self, p, b):
         return self.gather_cms(evaluate.global_cm(self.lay, p, b, self.test, self.cfg))
 
-    def eval_clients(self, bank_p, bank_b):
+    def eval_clients(self, bank_p, bank_b, **kwargs):
         """bank rows indexed by local client index."""
         cms = evaluate.own_cm(self.lay, bank_p, bank_b, self.test, self.cfg,
-                              torch.arange(self.K, device=self.dev), max_rows=self.hp.get("eval_rows", 1 << 15))
+                              torch.arange(self.K, device=self.dev), max_rows=self.hp.get("eval_rows", 1 << 15), **kwargs)
         return self.gather_cms(cms)

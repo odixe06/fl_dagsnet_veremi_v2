@@ -1,4 +1,4 @@
-# Kết quả — 5.343 xe, DAGSNet W = 1, 50 round (30/10/2026)
+# Kết quả — 5.343 xe, DAGSNet W = 1, 50 round (31/10/2026)
 
 Tính lại từ confusion matrix đã pull (`scripts/report.py runs/pulls/*/`), không chép từ log. Protocol: [protocol](protocol.md).
 Headline mỗi phương pháp = model được đánh giá theo luật của bài (global; model client trên test của chính nó; prototype cho
@@ -12,7 +12,9 @@ Chưa có / lưu ý:
 - **NILM-FL**: đang chạy (`fl2-nilm-r2`, ~980 s/round ⇒ cần session 2).
 - **APFed**: metric r50 đầy đủ; bank model client r50 mất (rank 0 hết RAM host khi ghi state cuối; sửa `bda3c07`).
 - **SCAFFOLD**: không ổn định giai đoạn đầu (train_loss NaN r15–16, F1 r5 0,23, r15–16 0,25/0,23), hồi phục từ r18.
-- **MobiHet**: repo riêng `odixe06/mobihet` (đang sàng lọc 10 round).
+- **MobiHet v4**: W&B tắt theo owner; hai session nối exact r1–25/r26–50. Audit 50 CM × 2 view PASS,
+  mỗi view/round đủ 9.347.679 dòng; source hash/metric/finite/skipped PASS. Lớp timeDelay vẫn là nút thắt:
+  F1 private/proxy r50 = 0,1159/0,1173. RelKD train→val là arm sàng lọc riêng, chưa phải kết quả final.
 - FedAvg/FedProx/SCAFFOLD/FedProto chạy SHA `6617261` (không có snapshot model từng round; state r50 trên Kaggle).
 
 | method | view | round | accuracy | precision_macro | precision_micro | precision_weighted | recall_macro | recall_micro | recall_weighted | f1_macro | f1_micro | f1_weighted | client F1 mean | p10 | min | byte/client/round |
@@ -31,6 +33,8 @@ Chưa có / lưu ý:
 | fedtgp | client_proto (headline) | 50 | 0,9020 | 0,8924 | 0,9020 | 0,8945 | 0,8610 | 0,9020 | 0,9020 | 0,8719 | 0,9020 | 0,8947 | 0,7794 | 0,5712 | 0,0000 | 32.768 |
 |  | client | 50 | 0,9007 | 0,8989 | 0,9007 | 0,8950 | 0,8594 | 0,9007 | 0,9007 | 0,8740 | 0,9007 | 0,8933 | 0,7782 | 0,5691 | 0,0000 | 32.768 |
 | lwfednids | global (headline) | 50 | 0,9162 | 0,9320 | 0,9162 | 0,9111 | 0,8830 | 0,9162 | 0,9162 | 0,8904 | 0,9162 | 0,8986 | 0,8476 | 0,7291 | 0,2139 | 324.000 |
+| mobihet | private (headline) | 50 | 0,9212 | 0,9447 | 0,9212 | 0,9221 | 0,8873 | 0,9212 | 0,9212 | 0,8953 | 0,9212 | 0,9036 | 0,8468 | 0,7163 | 0,1453 | 239.838 |
+|  | proxy | 50 | 0,9221 | 0,9431 | 0,9221 | 0,9192 | 0,8918 | 0,9221 | 0,9221 | 0,8995 | 0,9221 | 0,9048 | 0,8661 | 0,7525 | 0,2963 | 239.838 |
 | perfedskd | client (headline) | 50 | 0,8994 | 0,8903 | 0,8994 | 0,8931 | 0,8598 | 0,8994 | 0,8994 | 0,8710 | 0,8994 | 0,8928 | 0,8133 | 0,6573 | 0,1241 | 3.189.376 |
 | pfedes | client (headline) | 50 | 0,8864 | 0,8692 | 0,8864 | 0,8800 | 0,8405 | 0,8864 | 0,8864 | 0,8511 | 0,8864 | 0,8803 | 0,7449 | 0,5264 | 0,0000 | 2.808 |
 | scaffold | global (headline) | 50 | 0,9225 | 0,9011 | 0,9225 | 0,8842 | 0,8859 | 0,9225 | 0,9225 | 0,8911 | 0,9225 | 0,9003 | 0,8744 | 0,7738 | 0,2963 | 6.352.640 |

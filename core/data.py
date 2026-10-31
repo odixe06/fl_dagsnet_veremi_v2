@@ -58,15 +58,16 @@ def files(root, split):
 FOLD = {"train": 0, "val": 1, "test": 2}
 
 
-def build_npy(root, out, clients=None):
+def build_npy(root, out, clients=None, splits=("train", "test")):
     """One-time parquet -> npy (all clients, train with per-row fold code, test) in `out`; then load() reads from it via
     V4_NPY=out, each process memmapping the arrays and gathering only its clients (Kaggle: one reader, not one per rank)."""
     os.makedirs(out, exist_ok=True)
-    for split in ("train", "test"):
+    for split in splits:
+        assert split in ("train", "test"), split
         s = load(root, split, clients, with_fold=True)
         for k in ("X", "Y", "off", "ids", "F"):
             np.save(os.path.join(out, f"{split}_{k}.npy"), getattr(s, k))
-    open(os.path.join(out, "done"), "w").write("ok")
+    open(os.path.join(out, "done"), "w").write(json.dumps(list(splits)))
 
 
 def load_npy(npy, split, clients=None, folds=None):
@@ -86,7 +87,8 @@ def load(root, split, clients=None, cache=None, folds=None, with_fold=False):
     """split in {'train', 'test'}; clients = iterable of global client_id to keep (None = all); folds = subset of
     {'train', 'val'} inside train/ (None = every row: FL and final runs train on train + val)."""
     npy = os.environ.get("V4_NPY")
-    if npy and os.path.exists(os.path.join(npy, "done")) and not with_fold:
+    if (npy and os.path.exists(os.path.join(npy, "done"))
+            and os.path.exists(os.path.join(npy, f"{split}_X.npy")) and not with_fold):
         return load_npy(npy, split, clients, folds)
     tag = "all" if clients is None else f"sub{len(set(clients))}_{abs(hash(tuple(sorted(set(clients))))) % 10**8}"
     if folds:

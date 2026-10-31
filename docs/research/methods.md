@@ -24,7 +24,7 @@ Build cũ (dataset Dirichlet 20/50/100 client) chỉ để đối chiếu cơ ch
 | 13 | FedTGP | Zhang 2024 (AAAI) | client | prototype ↔ prototype toàn cục huấn luyện được | B `fedtgp` | code + test toy |
 | 14 | PerFed-SKD | Singh 2024 (TCE) | client | θ (client được chọn) | A `perfedskd` | code + test toy |
 | 15 | FedProto | Tan 2022 (AAAI) | client | prototype | B `fedproto` | code + test toy |
-| 16 | **MobiHet** (đề xuất) | repo `mobihet`, `gkd + la + kdpx`, proxy q3_zl | client (private) + proxy | proxy 3-bit + LZMA2 | `mobihet/methods/full-drift` | code + smoke local; gộp theo n_k (owner 29/10) |
+| 16 | **MobiHet** (đề xuất) | repo `mobihet`, `gkd + la + kdpx`, proxy q3_zl | client (private) + proxy | proxy 3-bit + LZMA2 | `mobihet/methods/full-drift` | r50 audit PASS + [kế hoạch cải tiến](../methods/mobihet-improvement.md) |
 
 Đặc tả từng phương pháp (công thức theo số phương trình của bài, siêu tham số bài gốc, deviation) nằm ở **docstring đầu file**
 `methods/<alias>.py` — một nguồn duy nhất, đọc cùng code. Toàn cục: [global-baselines](../methods/global-baselines.md).

@@ -16,15 +16,20 @@ Dựng lại **15 phương pháp** trong bảng owner + **MobiHet** (đề xuấ
 - Đánh giá: model toàn cục trên toàn test; model riêng client trên **test của chính xe đó** (gộp = toàn test). Đủ 10 metric.
 - DAGSNet được thu nhỏ (giảm kênh, giữ 4 nhánh) nếu centralized macro-F1 val kém full ≤ 0,01; độ rộng chung mọi phương pháp.
 - Một seed (42). W&B online. Repo GitHub **public** `odixe06/fl_dagsnet_veremi_v2`; không đẩy data, PDF bài báo, credentials.
+- Override owner 30/10 cho lần chạy MobiHet v4 mới: **không dùng W&B**, dùng log/artifact Kaggle; dataset `odixe0502/veremi-nextgen-v4-scaled-per-vehicle`. Chi tiết phiên mới ở bàn giao.
 - Task < 1 h chạy local; task dài chạy Kaggle (16 account; CLI mới đăng nhập 6, owner bổ sung sau). Env conda `nckh`.
 - Tốc độ train phải tối ưu ⇒ `core/grouped.py`: nhiều client một bước (bmm), dữ liệu thường trú GPU.
 
-## Trạng thái — 30/10 11:15 (giờ VN)
+## Trạng thái — 31/10 (giờ VN)
 
 - 19/19 phương pháp code + test. **W = 1 khóa** (DAGSNet 395.408 tham số).
 - 14 run FL 50 round + centralized + CANPerFL **xong, audit PASS** ⇒ [results](docs/research/results.md) (centralized 0,9593;
   FL tốt nhất APFed client 0,9119; FedAvg 0,9042). Còn chạy: NILM-FL (cần session 2), TinyProto r3 (sửa luật prototype).
 - Chi phí FLOPs/băng thông mọi phương pháp: [cost](docs/research/cost.md). MobiHet: repo riêng (bên dưới).
+- MobiHet v4 r50 audit PASS: private/proxy macro-F1 0,8953/0,8995, class13 ~0,116. P0 local-prior FAIL;
+  P1a 77-feature oracle PASS (F1 lớp13 0,5423),
+  mở method branch; paired RelKD train→val r10 v2 đang chạy song song, startup tests PASS (v1 lỗi checker sau smoke r2).
+  Chưa cần dataset v5/raw. Không W&B.
 
 ## Cần biết → mở
 
